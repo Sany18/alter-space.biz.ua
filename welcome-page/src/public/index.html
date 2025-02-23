@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Alter Space</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Hello Guest" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const vantaEffect = VANTA.NET({
+          el: ".vanta-layer",
+          mouseControls: false,
+          touchControls: false,
+          gyroControls: false,
+          minHeight: 500.00,
+          minWidth: 200.00,
+          scale: 1.00,
+          scaleMobile: 1.00,
+          points: 20.00,
+          maxDistance: 20.00,
+          spacing: 15.00,
+          showDots: false,
+        })
+      })
+    </script>
+
+    <style>
+      :root {
+        --yellow: #ffd319;
+        --orange: #ff901f;
+        --red: #ff2975;
+        --pink: #f222ff;
+        --purple: #8c1eff;
+        --dark-purple: #23153c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Ubuntu;
+        color: white;
+        width: 100vw;
+        min-height: 100svh;
+        margin: 0;
+        padding: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 16px;
+        flex-direction: column;
+        background-color: #000;
+      }
+
+      .links-list {
+        gap: 0.5rem;
+        width: min(100%, 800px);
+        margin: auto auto;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .link {
+        color: var(--orange);
+        border: solid grey 5px;
+        cursor: pointer;
+        padding: 1rem 1.5rem;
+        display: flex;
+        background: transparent;
+        user-select: none;
+        text-decoration: none;
+        justify-content: center;
+
+        &:hover {
+          color: var(--purple);
+          transition: all .2s ease-in-out;
+          box-shadow: var(--purple) 0.5rem 0.5rem 0px;
+          animation: glitch 4s infinite;
+        }
+
+        &:active {
+          background: var(--yellow);
+        }
+
+        &:not([href]) {
+          color: gray;
+          cursor: not-allowed;
+          animation: none;
+          box-shadow: none;
+        }
+
+        @keyframes glitch {
+          0% { text-shadow: var(--purple) 0px 0px 0px; }
+          39% { text-shadow: var(--purple) 0px 0px 0px; }
+          40% { text-shadow: var(--purple) -1px -2px 0px; }
+          41% { text-shadow: white -1px 2px 3px; }
+          42% { text-shadow: white -2px -1px 0px; }
+          53% { text-shadow: var(--purple) 0px 0px 0px; }
+          54% { text-shadow: var(--purple) 1px 0px 3px; }
+          60% { text-shadow: var(--purple) 0px 1px 0px; }
+          61% { text-shadow: var(--purple) 0px 0px 0px; }
+          100% { text-shadow: var(--purple) 0px 0px 0px; }
+        }
+      }
+
+      .context-menu {
+        color: black;
+        cursor: pointer;
+        border: 1px solid #555;
+        padding: 10px;
+        position: absolute;
+        background-color: grey;
+      }
+
+      .vanta-layer {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        position: fixed;
+      }
+
+      .cursor-layer {
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        overflow: hidden;
+        position: absolute;
+      }
+
+      .cursor-square {
+        top: 0;
+        left: 0;
+        margin: -11px 0 0 -11px;
+        width: 26px;
+        height: 26px;
+        border: 1px solid #fff2;
+        position: absolute;
+        transform: translate(-999px, -999px);
+      }
+
+      .cursors-circle {
+        top: 0;
+        left: 0;
+        position: absolute;
+        border-radius: 50%;
+        background-color: #fff4;
+        transform: translate(-999px, -999px);
+      }
+
+      .welcome-text {
+        h1 {
+          font-size: 2rem;
+          margin: 0;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="vanta-layer"></div>
+    <div class="cursor-layer"></div>
+
+    <div class="welcome-text">
+      <h1>Welcome to Alter Space</h1>
+      <p>Here you can find some of my projects</p>
+      <p>Created by Tantsiura Olexandr</p>
+    </div>
+
+    <div class="links-list">
+      <a class="link" href='https://sany18.github.io/cv/' target="_blank">Tantsiura Olexandr CV</a>
+      <a class="link" href='https://note-keeper.space' target="_blank">Note Keeper</a>
+      <a class="link">Tetris</a>
+      <a class="link">Synthwave (demo)</a>
+      <a class="link">3D Shooter (demo)</a>
+      <a class="link" href='https://github.com/Sany18' target="_blank">GitHub</a>
+      <a class="link" href='https://www.linkedin.com/in/alexandr-tantsiura-49393a166/' target="_blank">LinkedIn</a>
+      <a class="link" href='https://hoxzy.blogspot.com/' target="_blank">Ukrainian Blog</a>
+    </div>
+  </body>
+</html>

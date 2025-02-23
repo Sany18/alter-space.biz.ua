@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "esnext",
+    "target": "es5",
+    "lib": ["ES2015", "DOM"],
+    "moduleResolution": "node",
+    "allowJs": true,
+    "allowUnusedLabels": true,
+    "skipLibCheck": true,
+  }
+}

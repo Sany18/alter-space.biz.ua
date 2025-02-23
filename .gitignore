@@ -1,0 +1,16 @@
+node_modules/
+**/node_modules/
+build/
+**/build/
+dist/
+**/dist/
+coverage/
+**/coverage/
+.env
+**/.env
+.env.local
+**/.env.local
+.env.prod
+**/.env.prod
+*.log
+**/*.log
