@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Тетріс Sany18</title>
+  <link rel="stylesheet" href="style.css">
+
+  <script defer src="script.js"></script>
+  <!-- <script defer src="auth.js"></script> -->
+  <!-- <script defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script> -->
+</head>
+<body>
+  <div id="content">
+    <canvas id="game"></canvas>
+    <div id="sidebar">
+      <div>
+        <div>Score:</div>
+        <div id="score">0</div>
+      </div>
+      <button id="pause-button">Pause</button>
+      <button id="menu-button">Menu</button>
+      <div id="profile"></div>
+      <!-- <button id="auth-button" onclick="handleAuthClick()">Login</button> -->
+    </div>
+  </div>
+
+  <div id="menu">
+    <div>Тетріс Sany18</div>
+    <button id="start-button">Start</button>
+    <button id="save-button">Save</button>
+    <button id="restart-button">Restart</button>
+    <button id="load-button">Load game</button>
+    <!-- <button>Settings</button> -->
+    <button onclick="location.href = '/'">Exit</button>
+  </div>
+</body>
+</html>

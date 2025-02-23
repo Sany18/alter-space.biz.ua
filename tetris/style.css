@@ -1,0 +1,91 @@
+/* https://coolors.co/227c9d-17c3b2-ffcb77-fef9ef-fe6d73 */
+@font-face {
+  font-family: 'Squarea Regular';
+  src: url('fonts/Squarea Regular.ttf');
+}
+
+:root {
+  --background: #658f9e;
+  --cyan: #17C3B2;
+  --yellow: #ffcb77;
+  --white: #FEF9EF;
+  --red: #FE6D73;
+  --white: #FEF9EF;
+
+  /* canvas colors */
+  --game-background: var(--background);
+  --active-square: var(--yellow);
+  --empty-square: #145357;
+  --inactive-square: #52da31;
+  --aspect-ratio: 10/16;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Squarea Regular', sans-serif;
+}
+
+html {
+  font-size: 100%;
+  color: var(--yellow);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  /* background: black; */
+
+  --s: 200px; /* control the size */
+  --c1: #1d1d1d;
+  --c2: #4e4f51;
+  --c3: #3c3c3c;
+
+  background:
+    repeating-conic-gradient(from 30deg,#0000 0 120deg,var(--c3) 0 180deg)
+      calc(.5*var(--s)) calc(.5*var(--s)*0.577),
+    repeating-conic-gradient(from 30deg,var(--c1) 0 60deg,var(--c2) 0 120deg,var(--c3) 0 180deg);
+  background-size: var(--s) calc(var(--s)*0.577);
+
+}
+
+#content {
+  height: 100svh;
+  display: flex;
+  align-items: flex-start;
+}
+
+#sidebar {
+  gap: 1rem;
+  width: 120px;
+  padding: .25rem;
+  display: flex;
+  font-size: 1.2rem;
+  flex-direction: column;
+}
+
+#score {
+  font-size: 1.5rem;
+  color: var(--white);
+}
+
+#menu {
+  gap: 1rem;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100svh;
+  display: flex;
+  position: fixed;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  background: #00000099;
+}
+
+.hidden {
+  display: none !important;
+}
