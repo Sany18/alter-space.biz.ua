@@ -13,9 +13,9 @@
       document.addEventListener('DOMContentLoaded', () => {
         const vantaEffect = VANTA.NET({
           el: ".vanta-layer",
-          mouseControls: false,
-          touchControls: false,
-          gyroControls: false,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: true,
           minHeight: 500.00,
           minWidth: 200.00,
           scale: 1.00,
@@ -34,7 +34,7 @@
         --orange: #ff901f;
         --red: #ff2975;
         --pink: #f222ff;
-        --purple: #8c1eff;
+        --purple: #7d04fd;
         --dark-purple: #23153c;
       }
 
@@ -69,43 +69,36 @@
       .link {
         color: var(--orange);
         border: solid grey 5px;
-        cursor: pointer;
+        cursor: unset;
         padding: 1rem 1.5rem;
         display: flex;
-        background: transparent;
         user-select: none;
         text-decoration: none;
         justify-content: center;
 
         &:hover {
-          color: var(--purple);
-          transition: all .2s ease-in-out;
-          box-shadow: var(--purple) 0.5rem 0.5rem 0px;
+          color: var(--yellow);
+          border: solid var(--yellow) 5px;
           animation: glitch 4s infinite;
+          transition: all .2s ease-in-out;
         }
 
         &:active {
+          color: var(--dark-purple);
           background: var(--yellow);
         }
 
         &:not([href]) {
           color: gray;
-          cursor: not-allowed;
+          filter: blur(3px);
+          cursor: unset;
           animation: none;
           box-shadow: none;
-        }
 
-        @keyframes glitch {
-          0% { text-shadow: var(--purple) 0px 0px 0px; }
-          39% { text-shadow: var(--purple) 0px 0px 0px; }
-          40% { text-shadow: var(--purple) -1px -2px 0px; }
-          41% { text-shadow: white -1px 2px 3px; }
-          42% { text-shadow: white -2px -1px 0px; }
-          53% { text-shadow: var(--purple) 0px 0px 0px; }
-          54% { text-shadow: var(--purple) 1px 0px 3px; }
-          60% { text-shadow: var(--purple) 0px 1px 0px; }
-          61% { text-shadow: var(--purple) 0px 0px 0px; }
-          100% { text-shadow: var(--purple) 0px 0px 0px; }
+          &:hover {
+            color: var(--dark-purple);
+            border: solid var(--dark-purple) 5px;
+          }
         }
       }
 
@@ -158,11 +151,50 @@
       }
 
       .welcome-text {
+        gap: 0.5rem;
+        display: flex;
+        margin-top: 1rem;
+        align-items: flex-end;
+        flex-direction: column;
+        animation: flicker 3s infinite;
+
         h1 {
           font-size: 2rem;
           margin: 0;
           padding: 0;
         }
+
+        p {
+          font-size: 1rem;
+          margin: 0;
+          padding: 0;
+        }
+      }
+
+      @keyframes glitch {
+        0% { text-shadow: var(--purple) 0px 0px 0px; }
+        39% { text-shadow: var(--purple) 0px 0px 0px; }
+        40% { text-shadow: var(--purple) -1px -2px 0px; }
+        41% { text-shadow: white -1px 2px 3px; }
+        42% { text-shadow: white -2px -1px 0px; }
+        53% { text-shadow: var(--purple) 0px 0px 0px; }
+        54% { text-shadow: var(--purple) 1px 0px 3px; }
+        60% { text-shadow: var(--purple) 0px 1px 0px; }
+        61% { text-shadow: var(--purple) 0px 0px 0px; }
+        100% { text-shadow: var(--purple) 0px 0px 0px; }
+      }
+
+      @keyframes flicker {
+        0%, 100% { opacity: 1; }
+        10% { opacity: 0.9; }
+        20% { opacity: 0.8; }
+        30% { opacity: 0.0; }
+        40% { opacity: 0.6; }
+        50% { opacity: 0.5; }
+        60% { opacity: 0.4; }
+        70% { opacity: 0.3; }
+        80% { opacity: 0.7; }
+        90% { opacity: 0.1; }
       }
     </style>
   </head>
@@ -170,12 +202,6 @@
   <body>
     <div class="vanta-layer"></div>
     <div class="cursor-layer"></div>
-
-    <div class="welcome-text">
-      <h1>Welcome to Alter Space</h1>
-      <p>Here you can find some of my projects</p>
-      <p>Created by Tantsiura Olexandr</p>
-    </div>
 
     <div class="links-list">
       <a class="link" href='https://sany18.github.io/cv/' target="_blank">Tantsiura Olexandr CV</a>
@@ -186,6 +212,12 @@
       <a class="link" href='https://github.com/Sany18' target="_blank">GitHub</a>
       <a class="link" href='https://www.linkedin.com/in/alexandr-tantsiura-49393a166/' target="_blank">LinkedIn</a>
       <a class="link" href='https://hoxzy.blogspot.com/' target="_blank">Ukrainian Blog</a>
+    </div>
+
+    <div class="welcome-text">
+      <h1>Welcome to Alter Space</h1>
+      <p>Here you can find some of my projects</p>
+      <p>Created by Tantsiura Olexandr</p>
     </div>
   </body>
 </html>
