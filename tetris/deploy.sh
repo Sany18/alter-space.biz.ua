@@ -10,15 +10,10 @@ set +o allexport
 
 echo "Deploying to $REMOTE_HOST"
 
-# Build production command
-pnpm run build
-
 # Exclude and deploy the project to the remote server
 rsync -av \
   --exclude-from=.gitignore \
-  dist/ \
-  root@${REMOTE_HOST}:/var/www/${DOMAIN}
+  . \
+  root@${REMOTE_HOST}:/var/www/${DOMAIN}/tetris
 
 echo "Deployed to $REMOTE_HOST"
-
-rm -rf dist
