@@ -1,10 +1,12 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 const dist = path.resolve(__dirname, 'dist');
 
 module.exports = {
+  mode: 'development',
   entry: {
     app: './src/index.js'
   },
@@ -39,6 +41,7 @@ module.exports = {
         { from: 'src/public/vanta.min.js', to: dist },
       ],
     }),
+    new CleanWebpackPlugin()
   ],
   devServer: {
     hot: true,
@@ -51,7 +54,6 @@ module.exports = {
       'Cache-Control': 'no-store',
     },
   },
-  mode: 'development',
   stats: 'errors-only',
   devtool: 'inline-source-map',
 };
