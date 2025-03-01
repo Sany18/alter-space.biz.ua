@@ -1,0 +1,65 @@
+:root {
+  font-family: 'Roboto', sans-serif;
+  color-scheme: light dark;
+
+  --text-color: #333; // Default text color for light mode
+  --comment-color: #6c757d; // Comment color for code
+  --border-color: #ddd; // Consistent border color
+  --select-hover: #007bff; // Hover color matching TimeWidget
+  --select-border: #ddd; // Consistent border color
+  --background-color: #fff; // Default background for light mode
+  --background-2-color: #f8f9fa; // Alternate background for light mode
+  --error-color: #dc3545; // Error color for form validation
+
+  @media (prefers-color-scheme: dark) {
+    --text-color: #e0e0e0;
+    --comment-color: #6c757d;
+    --border-color: #444;
+    --select-hover: #007bff;
+    --select-border: #444;
+    --background-color: #1a1a1a;
+    --background-2-color: #333;
+    --error-color: #dc3545;
+  }
+}
+
+* {
+  box-sizing: border-box; // Ensure consistent sizing
+}
+
+body {
+  margin: 0;
+  display: flex;
+  font-size: 16px;
+  min-width: 100%;
+  min-height: 100svh;
+  flex-direction: column;
+  color: var(--text-color);
+  scrollbar-gutter: stable;
+  background-color: var(--background-color);
+}
+
+#root {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+// Reset for form elements to avoid browser defaults overriding
+select {
+  color: var(--text-color);
+  border: 1px solid var(--select-border);
+  cursor: pointer;
+  padding: 0.5rem;
+  appearance: none; // Remove default browser styling
+  border-radius: 0.25rem;
+  background-color: var(--background-color);
+
+  &:hover {
+    border-color: var(--select-hover);
+  }
+}
+
+h2 {
+  margin-top: 0;
+}

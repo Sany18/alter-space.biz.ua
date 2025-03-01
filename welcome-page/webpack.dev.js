@@ -34,11 +34,11 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/public/index.html',
-
     }),
     new CopyPlugin({
       patterns: [
         { from: 'src/public/vanta.min.js', to: dist },
+        { from: 'src/public/favicon.ico', to: dist },
       ],
     }),
     new CleanWebpackPlugin()

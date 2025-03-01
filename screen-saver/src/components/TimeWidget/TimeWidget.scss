@@ -1,0 +1,38 @@
+.time-widget {
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 0.25rem;
+  background-color: var(--background-color); // Explicit background to avoid inheritance
+
+  h2 {
+    color: var(--text-color);
+  }
+
+  .time-display {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--select-hover);
+    margin-bottom: 1rem;
+  }
+
+  select {
+    color: var(--text-color); // Ensure readable text color
+    width: 100%;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border-radius: 0.25rem;
+    background-color: var(--background-color) !important; // Override any inherited background
+    transition: border-color 0.3s ease;
+
+    &:hover {
+      border-color: var(--select-hover) !important;
+    }
+
+    option {
+      color: var(--text-color);
+      background-color: var(--background-color);
+    }
+  }
+}

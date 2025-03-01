@@ -1,0 +1,9 @@
+.app {
+  gap: 1rem;
+  flex: 1;
+  display: flex;
+  padding: 1rem;
+  overflow: auto;
+  background: var(--background-2-color);
+  align-items: baseline;
+}

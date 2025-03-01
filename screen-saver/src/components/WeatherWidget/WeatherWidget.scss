@@ -1,0 +1,59 @@
+.weather-widget {
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 0.25rem;
+  background-color: var(--background-color);
+
+  h2 {
+    color: var(--text-color);
+  }
+
+  form {
+    gap: 0.5rem;
+    display: flex;
+
+    input {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      padding: 1rem;
+      font-size: 1rem;
+      border-radius: 0.25rem;
+    }
+
+    button {
+      color: var(--text-color);
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      background-color: var(--background-2-color);
+      border-radius: 4px;
+      transition: background-color 0.3s;
+
+      &:hover {
+        background-color: var(--select-active);
+      }
+    }
+  }
+
+  .error {
+    color: var(--error-color);
+    margin-top: 10px;
+  }
+
+  .weather-info {
+    h3 {
+      color: var(--select-hover);
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin: 5px 0;
+      color: var(--text-color);
+    }
+
+    img {
+      margin-top: 10px;
+    }
+  }
+}
