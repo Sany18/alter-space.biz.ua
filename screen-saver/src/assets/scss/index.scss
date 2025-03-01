@@ -1,27 +1,63 @@
+@use './styled-elements.scss';
+
 :root {
   font-family: 'Roboto', sans-serif;
-  color-scheme: light dark;
+}
 
-  --text-color: #333; // Default text color for light mode
-  --comment-color: #6c757d; // Comment color for code
-  --border-color: #ddd; // Consistent border color
-  --select-hover: #007bff; // Hover color matching TimeWidget
-  --select-border: #ddd; // Consistent border color
-  --background-color: #fff; // Default background for light mode
-  --background-2-color: #f8f9fa; // Alternate background for light mode
-  --error-color: #dc3545; // Error color for form validation
+// Define light mode variables
+$light-mode: (
+  color-scheme: light,
+  text-color: #333,
+  comment-color: #6c757d,
+  border-color: #ddd,
+  select-hover: #007bff,
+  select-border: #ddd,
+  background-color: #fff,
+  background-2-color: #f8f9fa,
+  error-color: #dc3545
+);
 
-  @media (prefers-color-scheme: dark) {
-    --text-color: #e0e0e0;
-    --comment-color: #6c757d;
-    --border-color: #444;
-    --select-hover: #007bff;
-    --select-border: #444;
-    --background-color: #1a1a1a;
-    --background-2-color: #333;
-    --error-color: #dc3545;
+// Define dark mode variables
+$dark-mode: (
+  color-scheme: dark,
+  text-color: #e0e0e0,
+  comment-color: #6c757d,
+  border-color: #444,
+  select-hover: #007bff,
+  select-border: #444,
+  background-color: #1a1a1a,
+  background-2-color: #333,
+  error-color: #dc3545
+);
+
+// Mixin to apply theme variables
+@mixin apply-theme($theme) {
+  @each $key, $value in $theme {
+    --#{$key}: #{$value};
   }
 }
+
+/* Default Light Theme */
+:root {
+  @include apply-theme($light-mode);
+}
+
+/* Dark Theme for System Preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    @include apply-theme($dark-mode);
+  }
+}
+
+/* Manual Theme Override */
+[data-theme="light"] {
+  @include apply-theme($light-mode);
+}
+
+[data-theme="dark"] {
+  @include apply-theme($dark-mode);
+}
+
 
 * {
   box-sizing: border-box; // Ensure consistent sizing

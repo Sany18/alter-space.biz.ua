@@ -5,5 +5,9 @@
   padding: 1rem;
   overflow: auto;
   background: var(--background-2-color);
-  align-items: baseline;
+  align-items: flex-start;
+}
+
+.toggle-theme-button {
+  margin-left: auto;
 }
