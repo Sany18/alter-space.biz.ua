@@ -4,6 +4,7 @@
   display: flex;
   padding: 1rem;
   overflow: auto;
+  flex-wrap: wrap;
   background: var(--background-2-color);
   align-items: flex-start;
 }
