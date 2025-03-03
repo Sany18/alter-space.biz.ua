@@ -1,0 +1,14 @@
+.app {
+  gap: 1rem;
+  flex: 1;
+  display: flex;
+  padding: 1rem;
+  overflow: auto;
+  flex-wrap: wrap;
+  background: var(--background-2-color);
+  align-items: flex-start;
+}
+
+.toggle-theme-button {
+  margin-left: auto;
+}

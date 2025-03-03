@@ -1,0 +1,21 @@
+#side-menu {
+  top: 0;
+  right: 0;
+  height: 100vmin;
+  position: absolute;
+  overflow: hidden;
+
+  .side-menu-content {
+    height: 100%;
+    padding: 8px;
+    min-width: 400px;
+    background: rgba(255, 255, 255, 0.8);
+    margin-right: -100vw;
+    display: flex;
+    flex-direction: column;
+
+    &.open {
+      margin-right: 0vw;
+    }
+  }
+}
