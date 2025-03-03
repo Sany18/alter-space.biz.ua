@@ -20,8 +20,6 @@ const WeatherWidget: React.FC = () => {
     setCity(savedCity);
     setWeather(lastWeather);
 
-    console.log(lastWeather);
-
     if (savedCity && lastWeather && checkDateTime(lastWeather.dt)) {
       fetchWeather(savedCity); // Auto-fetch weather for the saved city
     }
