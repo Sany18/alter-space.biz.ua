@@ -56,11 +56,14 @@
         background-color: #000;
       }
 
+      .links-wrapper {
+        margin: auto auto;
+        z-index: 1;
+      }
+
       .links-list {
         gap: 0.5rem;
         width: min(100%, 800px);
-        margin: auto auto;
-        z-index: 1;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
@@ -72,6 +75,7 @@
         cursor: unset;
         padding: 1rem 1.5rem;
         display: flex;
+        background: var(--dark-purple);
         user-select: none;
         text-decoration: none;
         justify-content: center;
@@ -80,6 +84,7 @@
           color: var(--yellow);
           border: solid var(--yellow) 5px;
           animation: glitch 4s infinite;
+          background: #030a4766;
           transition: all .2s ease-in-out;
         }
 
@@ -100,15 +105,6 @@
             border: solid var(--dark-purple) 5px;
           }
         }
-      }
-
-      .context-menu {
-        color: black;
-        cursor: pointer;
-        border: 1px solid #555;
-        padding: 10px;
-        position: absolute;
-        background-color: grey;
       }
 
       .vanta-layer {
@@ -171,6 +167,21 @@
         }
       }
 
+      .context-menu {
+        z-index: 1;
+        position: absolute;
+      }
+
+      .context-menu-item {
+        color: black;
+        cursor: pointer;
+        display: flex;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        text-decoration: none;
+        background-color: var(--orange);
+      }
+
       @keyframes glitch {
         0% { text-shadow: var(--purple) 0px 0px 0px; }
         39% { text-shadow: var(--purple) 0px 0px 0px; }
@@ -203,16 +214,23 @@
     <div class="vanta-layer"></div>
     <div class="cursor-layer"></div>
 
-    <div class="links-list">
-      <a class="link" href='https://note-keeper.space' target="_blank">Note Keeper</a>
-      <a class="link" href='/tetris/'>Tetris</a>
-      <a class="link" href='/screen-saver/'>Screen Saver</a>
-      <a class="link" href='/3d-shooter/'>3D Shooter (demo)</a>
-      <a class="link">Synthwave (demo)</a>
-      <a class="link" href='https://sany18.github.io/cv/' target="_blank">Tantsiura Olexandr CV</a>
-      <a class="link" href='https://github.com/Sany18' target="_blank">GitHub</a>
-      <a class="link" href='https://www.linkedin.com/in/alexandr-tantsiura-49393a166/' target="_blank">LinkedIn</a>
-      <a class="link" href='https://hoxzy.blogspot.com/' target="_blank">Ukrainian Blog</a>
+    <div class='links-wrapper'>
+      <h3>My own projects</h3>
+      <div class="links-list">
+        <a class="link" href='https://note-keeper.space' target="_blank">Note Keeper</a>
+        <a class="link" href='/tetris/'>Tetris</a>
+        <a class="link" href='/screen-saver/'>Screen Saver</a>
+        <a class="link" href='/3d-shooter/'>3D Shooter (demo)</a>
+        <a class="link">Synthwave (demo)</a>
+      </div>
+
+      <h3>Other links</h3>
+      <div class="links-list">
+        <a class="link" href='https://sany18.github.io/cv/' target="_blank">Tantsiura Olexandr CV</a>
+        <a class="link" href='https://github.com/Sany18' target="_blank">GitHub</a>
+        <a class="link" href='https://www.linkedin.com/in/alexandr-tantsiura-49393a166/' target="_blank">LinkedIn</a>
+        <a class="link" href='https://hoxzy.blogspot.com/' target="_blank">Ukrainian Blog</a>
+      </div>
     </div>
 
     <div class="welcome-text">

@@ -8,7 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
     event.preventDefault();
     const el = document.querySelector('.context-menu');
     if (el) el.remove();
-    const links = `<div>Hi there</div>`;
+    const links = `
+      <a
+        class="context-menu-item"
+        href="https://donatello.to/hoxz">
+        Buy me some delicious
+      </a>
+    `;
 
     const menu = document.createElement('div');
     menu.style.cssText = `top: ${event.clientY}px; left: ${event.clientX}px;`;
