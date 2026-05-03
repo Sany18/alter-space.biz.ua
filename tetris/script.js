@@ -9,6 +9,7 @@ window.addEventListener('load', () => {
     width: 10,
     height: 16,
     gameSpeed: 1000, // ms
+    lineClearAnimationDuration: 240, // ms
     redrawSpeed: 1000 / 60, // ms
     figures: [
       [
@@ -65,6 +66,8 @@ window.addEventListener('load', () => {
     pause: false,
     gameover: false,
     score: 0,
+    lineCheckPending: false,
+    lineClearAnimation: null,
     touchDownPosition: null,
     moveMiddlePosition: null,
     colors: deepCopy(config.colors),
@@ -93,12 +96,14 @@ window.addEventListener('load', () => {
   checkElementsState();
 
   const aciton = () => {
+    updateLineClearAnimation();
+    resolvePendingLineCheck();
     drawCurrentFrame();
 
-    if (!state.pause && !state.gameover) {
+    if (!state.pause && !state.gameover && !state.lineClearAnimation) {
       if (Date.now() - state.lastTick > config.gameSpeed) {
         fallFigure();
-        removeLines();
+
         state.lastTick = Date.now();
       }
     }
@@ -155,24 +160,38 @@ window.addEventListener('load', () => {
   }
 
   function removeLines() {
-    let removedLines = 0;
+    if (state.lineClearAnimation) return false;
+
+    const rowsToClear = [];
 
     for (let i = 0; i < config.height; i++) {
       if (state.filledElements.every(line => line[i] == 1)) {
-        state.filledElements.forEach(line => line.splice(i, 1));
-        state.filledElements.forEach(line => line.unshift(0));
-        removedLines++;
+        rowsToClear.push(i);
       }
     }
 
-    if (removedLines > 0) {
-      const rawScore = removedLines * 100 * Math.sqrt(removedLines)
-      state.score += Math.round(rawScore / 10) * 10;
-      $('#score').innerText = state.score;
+    if (rowsToClear.length > 0) {
+      state.lineClearAnimation = {
+        rows: rowsToClear,
+        removedLines: rowsToClear.length,
+        startedAt: Date.now(),
+      };
+      state.lineCheckPending = false;
+      return true;
     }
+
+    return false;
+  }
+
+  function resolvePendingLineCheck() {
+    if (!state.lineCheckPending || state.lineClearAnimation) return;
+    if (removeLines()) return;
+
+    state.lineCheckPending = false;
   }
 
   function drawCurrentFigure() {
+    if (!state.currentFigure && (state.lineClearAnimation || state.lineCheckPending)) return;
     if (state.currentFigure) drawFigure();
     if (!state.currentFigure) {
       const figure = getRandomFigure();
@@ -189,10 +208,17 @@ window.addEventListener('load', () => {
   }
 
   function drawFallenFigures() {
+    const animation = state.lineClearAnimation;
+    const animationProgress = getLineClearAnimationProgress();
+
     for (let i = 0; i < config.width; i++) {
       for (let j = 0; j < config.height; j++) {
         if (state.filledElements[i][j] == 1) {
-          drawSquare(i, j, state.colors.inactiveSquare);
+          if (animation && animation.rows.includes(j)) {
+            drawClearingSquare(i, j, animationProgress);
+          } else {
+            drawSquare(i, j, state.colors.inactiveSquare);
+          }
         }
       }
     }
@@ -220,6 +246,25 @@ window.addEventListener('load', () => {
     ctx.fillRect(x, y, size, size);
     ctx.fillStyle = color;
     ctx.fillRect(x + p, y + p, size - 2*p, size - 2*p);
+  }
+
+  function drawClearingSquare(_x, _y, progress) {
+    const size = squareSize;
+    const { x, y } = getAbsolutePosition(_x, _y);
+    const p = ps() / 2;
+    const flashBrightness = 0.8 + Math.abs(Math.sin(progress * Math.PI * 4)) * 0.2;
+    const flashColor = hexColorBrightness(config.colors.activeSquare, flashBrightness);
+    const collapse = Math.min(progress, 1);
+    const innerWidth = Math.max(size * (1 - collapse) - 2 * p, 0);
+    const offsetX = x + (size - innerWidth) / 2;
+
+    ctx.fillStyle = state.colors.background;
+    ctx.fillRect(x, y, size, size);
+
+    if (innerWidth <= 0) return;
+
+    ctx.fillStyle = flashColor;
+    ctx.fillRect(offsetX, y + p, innerWidth, size - 2 * p);
   }
 
   function drawMesh() {
@@ -257,10 +302,42 @@ window.addEventListener('load', () => {
   }
 
   function rgbToHex(rgb) {
-    const r = rgb[0].toString(16);
-    const g = rgb[1].toString(16);
-    const b = rgb[2].toString(16);
+    const r = rgb[0].toString(16).padStart(2, '0');
+    const g = rgb[1].toString(16).padStart(2, '0');
+    const b = rgb[2].toString(16).padStart(2, '0');
     return '#' + r + g + b;
+  }
+
+  function getLineClearAnimationProgress() {
+    if (!state.lineClearAnimation) return 0;
+    const elapsed = Date.now() - state.lineClearAnimation.startedAt;
+    return Math.min(elapsed / config.lineClearAnimationDuration, 1);
+  }
+
+  function updateLineClearAnimation() {
+    if (!state.lineClearAnimation) return;
+    if (getLineClearAnimationProgress() < 1) return;
+
+    commitLineClearAnimation();
+  }
+
+  function commitLineClearAnimation() {
+    const { rows, removedLines } = state.lineClearAnimation;
+    const rowsToClear = new Set(rows);
+
+    state.filledElements = state.filledElements.map(line => {
+      const remainingSquares = line.filter((_, rowIndex) => !rowsToClear.has(rowIndex));
+      const clearedSquares = Array.from({ length: removedLines }, () => 0);
+
+      return clearedSquares.concat(remainingSquares);
+    });
+
+    const rawScore = removedLines * 100 * Math.sqrt(removedLines);
+    state.score += Math.round(rawScore / 10) * 10;
+    state.lineClearAnimation = null;
+    state.lineCheckPending = true;
+    state.lastTick = Date.now();
+    $('#score').innerText = state.score;
   }
 
   function fallFigure() {
@@ -275,6 +352,7 @@ window.addEventListener('load', () => {
       const coordinates = getFigureCoordinates(state.currentFigure);
       coordinates.forEach(({ x, y }) => state.filledElements[x][y] = 1);
       state.currentFigure = null;
+      state.lineCheckPending = true;
     }
   }
 
@@ -422,6 +500,16 @@ window.addEventListener('load', () => {
     checkElementsState();
   }
 
+  function togglePause() {
+    if (state.gameover || state.lineClearAnimation) return;
+
+    if (state.pause) {
+      continueGame();
+    } else {
+      pauseGame();
+    }
+  }
+
   function restartGame() {
     state = deepCopy(initialState);
     state.lastTick = Date.now();
@@ -433,12 +521,57 @@ window.addEventListener('load', () => {
     const game = localStorage.getItem('game');
     if (game) {
       state = JSON.parse(game);
+      state.lineCheckPending = true;
       state.lastTick = Date.now();
       $('#score').innerText = state.score;
       drawCurrentFrame();
       notSavedState.gameStarted = true;
     }
     checkElementsState();
+  }
+
+  function saveCurrentGame() {
+    if (!notSavedState.gameStarted || state.gameover) return;
+
+    saveGame();
+    notSavedState.savedGameExists = true;
+    checkElementsState();
+  }
+
+  function loadSavedGame() {
+    if (!notSavedState.savedGameExists) return;
+
+    loadGame();
+  }
+
+  function restartCurrentGame() {
+    if (!notSavedState.gameStarted) return;
+
+    restartGame();
+    if (notSavedState.showMenu) pauseGame();
+    checkElementsState();
+  }
+
+  function startGame() {
+    notSavedState.showMenu = false;
+    notSavedState.showGame = true;
+    state.pause = false;
+    checkElementsState();
+
+    // start game and continue for every next click
+    if (!notSavedState.gameStarted) restartGame();
+    notSavedState.gameStarted = true;
+  }
+
+  function triggerPrimaryAction() {
+    if (state.gameover || state.lineClearAnimation) return;
+
+    if (!notSavedState.gameStarted || notSavedState.showMenu) {
+      startGame();
+      return;
+    }
+
+    togglePause();
   }
 
   function pressLeft() {
@@ -490,21 +623,48 @@ window.addEventListener('load', () => {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (state.pause || state.gameover) return;
+    const key = e.key.toLowerCase();
+    const hasShortcutModifier = e.ctrlKey || e.metaKey;
 
-    if (e.key === 'ArrowLeft') {
+    if (key === 'q' && !hasShortcutModifier) {
+      e.preventDefault();
+      saveCurrentGame();
+      return;
+    }
+
+    if (key === 'e' && !hasShortcutModifier) {
+      e.preventDefault();
+      loadSavedGame();
+      return;
+    }
+
+    if (key === 'r' && !hasShortcutModifier) {
+      e.preventDefault();
+      restartCurrentGame();
+      return;
+    }
+
+    if (key === 'enter' || key === 'p' || e.key === ' ') {
+      e.preventDefault();
+      triggerPrimaryAction();
+      return;
+    }
+
+    if (state.pause || state.gameover || state.lineClearAnimation) return;
+
+    if (e.key === 'ArrowLeft' || e.key === 'a') {
       pressLeft(true);
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === 'ArrowRight' || e.key === 'd') {
       pressRight(true);
-    } else if (e.key === 'ArrowDown') {
+    } else if (e.key === 'ArrowDown' || e.key === 's') {
       pressDown(true);
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'ArrowUp' || e.key === 'w') {
       pressUp(true);
     }
-  });
+  }, true);
 
   document.body.addEventListener('touchstart', (e) => {
-    if (state.pause || state.gameover) return;
+    if (state.pause || state.gameover || state.lineClearAnimation) return;
 
     const { clientX, clientY } = e.touches[0];
     state.touchDownPosition = { x: clientX, y: clientY };
@@ -512,7 +672,7 @@ window.addEventListener('load', () => {
   });
 
   document.body.addEventListener('touchmove', (e) => {
-    if (state.pause || state.gameover) return;
+    if (state.pause || state.gameover || state.lineClearAnimation) return;
 
     const { clientX, clientY } = e.touches[0];
     const { x, y } = state.moveMiddlePosition;
@@ -540,7 +700,7 @@ window.addEventListener('load', () => {
   });
 
   document.body.addEventListener('touchend', (e) => {
-    if (state.pause || state.gameover) return;
+    if (state.pause || state.gameover || state.lineClearAnimation) return;
 
     const trashold = 5; // px
     const { clientX, clientY } = e.changedTouches[0];
@@ -556,29 +716,20 @@ window.addEventListener('load', () => {
   // display buttons
   /////////////////////////////////
   $('#pause-button').addEventListener('click', (e) => {
-    if (state.pause) {
-      continueGame();
-    } else {
-      pauseGame();
-    }
+    togglePause();
     checkElementsState();
   });
 
   $('#save-button').addEventListener('click', (e) => {
-    saveGame();
-    notSavedState.savedGameExists = true;
-    checkElementsState();
+    saveCurrentGame();
   });
 
   $('#load-button').addEventListener('click', (e) => {
-    loadGame();
+    loadSavedGame();
   });
 
   $('#restart-button').addEventListener('click', (e) => {
-    notSavedState.gameStarted = true;
-    restartGame();
-    if (notSavedState.showMenu) pauseGame();
-    checkElementsState();
+    restartCurrentGame();
   });
 
   $('#menu-button').addEventListener('click', (e) => {
@@ -586,14 +737,7 @@ window.addEventListener('load', () => {
   });
 
   $('#start-button').addEventListener('click', (e) => {
-    notSavedState.showMenu = false;
-    notSavedState.showGame = true;
-    state.pause = false;
-    checkElementsState();
-
-    // start game and continue for every next click
-    if (!notSavedState.gameStarted) restartGame();
-    notSavedState.gameStarted = true;
+    startGame();
   });
 });
 

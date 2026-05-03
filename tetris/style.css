@@ -58,6 +58,39 @@ body {
   align-items: flex-start;
 }
 
+#hotkey-helper {
+  top: .5rem;
+  left: .75rem;
+  z-index: -1;
+  gap: .25rem;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  font-size: .9rem;
+  pointer-events: none;
+}
+
+#hotkey-helper > div {
+  gap: .75rem;
+  display: flex;
+}
+
+.hotkey-helper-title {
+  color: var(--white);
+  margin-bottom: .15rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+#hotkey-helper > div span:first-child {
+  color: var(--white);
+  text-align: right;
+}
+
+#hotkey-helper > div span:last-child {
+  text-align: left;
+}
+
 #sidebar {
   gap: 1rem;
   width: 120px;
@@ -88,4 +121,17 @@ body {
 
 .hidden {
   display: none !important;
+}
+
+@media (max-width: 720px) {
+  #hotkey-helper {
+    top: .35rem;
+    right: .35rem;
+    font-size: .75rem;
+    max-width: min(13rem, calc(100vw - .7rem));
+  }
+
+  #hotkey-helper > div {
+    gap: .45rem;
+  }
 }
