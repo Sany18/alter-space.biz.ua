@@ -9,6 +9,9 @@ window.addEventListener('load', () => {
     width: 10,
     height: 16,
     gameSpeed: 1000, // ms
+    minGameSpeed: 120, // ms
+    scorePerLevel: 5000,
+    maxLevel: 10,
     lineClearAnimationDuration: 240, // ms
     redrawSpeed: 1000 / 60, // ms
     figures: [
@@ -101,7 +104,7 @@ window.addEventListener('load', () => {
     drawCurrentFrame();
 
     if (!state.pause && !state.gameover && !state.lineClearAnimation) {
-      if (Date.now() - state.lastTick > config.gameSpeed) {
+      if (Date.now() - state.lastTick > getCurrentGameSpeed()) {
         fallFigure();
 
         state.lastTick = Date.now();
@@ -308,6 +311,22 @@ window.addEventListener('load', () => {
     return '#' + r + g + b;
   }
 
+  function getCurrentLevel() {
+    return Math.min(config.maxLevel, Math.floor(state.score / config.scorePerLevel) + 1);
+  }
+
+  function getCurrentGameSpeed() {
+    const levelProgress = (getCurrentLevel() - 1) / (config.maxLevel - 1);
+    const speedRange = config.gameSpeed - config.minGameSpeed;
+
+    return Math.round(config.gameSpeed - speedRange * levelProgress);
+  }
+
+  function updateHud() {
+    $('#score').innerText = state.score;
+    $('#level').innerText = getCurrentLevel();
+  }
+
   function getLineClearAnimationProgress() {
     if (!state.lineClearAnimation) return 0;
     const elapsed = Date.now() - state.lineClearAnimation.startedAt;
@@ -337,7 +356,7 @@ window.addEventListener('load', () => {
     state.lineClearAnimation = null;
     state.lineCheckPending = true;
     state.lastTick = Date.now();
-    $('#score').innerText = state.score;
+    updateHud();
   }
 
   function fallFigure() {
@@ -523,7 +542,7 @@ window.addEventListener('load', () => {
       state = JSON.parse(game);
       state.lineCheckPending = true;
       state.lastTick = Date.now();
-      $('#score').innerText = state.score;
+      updateHud();
       drawCurrentFrame();
       notSavedState.gameStarted = true;
     }
@@ -612,7 +631,7 @@ window.addEventListener('load', () => {
     $('#pause-button').innerText = state.pause ? 'Resume' : 'Pause';
     $('#start-button').innerText = notSavedState.gameStarted ? 'Continue' : 'Start';
 
-    $('#score').innerText = state.score;
+    updateHud();
   }
 
   /////////////////////////////////

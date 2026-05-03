@@ -105,6 +105,15 @@ body {
   color: var(--white);
 }
 
+#level {
+  font-size: 1.35rem;
+  color: var(--white);
+}
+
+.sidebar-label {
+  margin-top: .4rem;
+}
+
 #menu {
   gap: 1rem;
   top: 0;
