@@ -11,201 +11,391 @@
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
-        const vantaEffect = VANTA.NET({
-          el: ".vanta-layer",
+        VANTA.NET({
+          el: '.vanta-layer',
+          color: 0x4da3ff,
+          backgroundColor: 0x060814,
           mouseControls: true,
           touchControls: true,
           gyroControls: true,
-          minHeight: 500.00,
-          minWidth: 200.00,
-          scale: 1.00,
-          scaleMobile: 1.00,
-          points: 20.00,
-          maxDistance: 20.00,
-          spacing: 15.00,
+          minHeight: 500,
+          minWidth: 200,
+          scale: 1,
+          scaleMobile: 1,
+          points: 20,
+          maxDistance: 20,
+          spacing: 15,
           showDots: false,
-        })
-      })
+        });
+      });
     </script>
 
     <style>
       :root {
-        --yellow: #ffd319;
-        --orange: #ff901f;
-        --red: #ff2975;
-        --pink: #f222ff;
-        --purple: #7d04fd;
-        --dark-purple: #23153c;
+        --bg: #060814;
+        --panel: rgba(8, 16, 40, 0.72);
+        --panel-strong: rgba(13, 24, 54, 0.84);
+        --border: rgba(98, 164, 255, 0.22);
+        --text: #f4f7ff;
+        --muted: #9bacd5;
+        --cyan: #6adfff;
+        --blue: #7aaeff;
+        --amber: #95c6ff;
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
-        font-family: Ubuntu;
-        color: white;
-        width: 100vw;
+        width: 100%;
         min-height: 100svh;
         margin: 0;
-        padding: 0.5rem;
+        padding: 24px;
         display: flex;
-        flex-wrap: wrap;
-        font-size: 16px;
-        flex-direction: column;
-        background-color: #000;
-      }
-
-      .links-wrapper {
-        margin: auto auto;
-        z-index: 1;
-      }
-
-      .links-list {
-        gap: 0.5rem;
-        width: min(100%, 800px);
-        display: flex;
-        flex-wrap: wrap;
         align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        background:
+          radial-gradient(circle at top left, rgba(106, 223, 255, 0.16), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(122, 174, 255, 0.16), transparent 24%),
+          linear-gradient(180deg, #03050b 0%, var(--bg) 100%);
       }
 
-      .link {
-        color: var(--orange);
-        border: solid grey 5px;
-        cursor: unset;
-        padding: 1rem 1.5rem;
-        display: flex;
-        background: var(--dark-purple);
-        user-select: none;
-        text-decoration: none;
-        justify-content: center;
-
-        &:hover {
-          color: var(--yellow);
-          border: solid var(--yellow) 5px;
-          animation: glitch 4s infinite;
-          background: #030a4766;
-          transition: all .2s ease-in-out;
-        }
-
-        &:active {
-          color: var(--dark-purple);
-          background: var(--yellow);
-        }
-
-        &:not([href]) {
-          color: gray;
-          filter: blur(3px);
-          cursor: unset;
-          animation: none;
-          box-shadow: none;
-
-          &:hover {
-            color: var(--dark-purple);
-            border: solid var(--dark-purple) 5px;
-          }
-        }
+      a {
+        color: inherit;
       }
 
       .vanta-layer {
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
         position: fixed;
+        inset: 0;
+        z-index: -1;
       }
 
       .cursor-layer {
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        position: fixed;
+        inset: 0;
         z-index: 0;
         overflow: hidden;
-        position: absolute;
+        pointer-events: none;
       }
 
       .cursor-square {
+        position: absolute;
         top: 0;
         left: 0;
-        margin: -11px 0 0 -11px;
         width: 26px;
         height: 26px;
+        margin: -11px 0 0 -11px;
         border: 1px solid #fff2;
-        position: absolute;
         transform: translate(-999px, -999px);
       }
 
       .cursors-circle {
+        position: absolute;
         top: 0;
         left: 0;
-        position: absolute;
         border-radius: 50%;
         background-color: #fff4;
         transform: translate(-999px, -999px);
       }
 
-      .welcome-text {
-        gap: 0.5rem;
+      .page-shell {
+        position: relative;
+        z-index: 1;
+        width: min(1120px, 100%);
         display: flex;
-        margin-top: 1rem;
-        align-items: flex-end;
+        gap: 18px;
         flex-direction: column;
-        animation: flicker 3s infinite;
+      }
 
-        h1 {
-          font-size: 2rem;
-          margin: 0;
-          padding: 0;
-        }
+      .panel {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
 
-        p {
-          font-size: 1rem;
-          margin: 0;
-          padding: 0;
-        }
+      .panel::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(106, 223, 255, 0.08), transparent 36%, rgba(122, 174, 255, 0.08));
+        pointer-events: none;
+      }
+
+      .hero-panel {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 18px;
+        background-color: var(--panel);
+      }
+
+      .ambient-glow {
+        position: absolute;
+        inset: auto auto -90px -70px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(106, 223, 255, 0.22), transparent 68%);
+        filter: blur(6px);
+        pointer-events: none;
+      }
+
+      .eyebrow {
+        width: fit-content;
+        margin: 0 0 12px;
+        padding: 6px 12px;
+        border: 1px solid rgba(106, 223, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(106, 223, 255, 0.08);
+        color: var(--cyan);
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .welcome-text {
+        display: grid;
+        gap: 10px;
+      }
+
+      .welcome-text h1 {
+        margin: 0;
+        font-size: clamp(2.15rem, 4vw, 3.7rem);
+        line-height: 0.98;
+        letter-spacing: -0.045em;
+        text-wrap: balance;
+      }
+
+      .lead {
+        max-width: 30rem;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.96rem;
+        line-height: 1.55;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .meta-chip {
+        padding: 8px 12px;
+        border: 1px solid rgba(122, 174, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(122, 174, 255, 0.08);
+        color: #dbe7ff;
+        font-size: 0.84rem;
+      }
+
+      .hero-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .hero-footer strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .link-grid-panel {
+        padding: 18px;
+        display: flex;
+        gap: 14px;
+        background-color: var(--panel-strong);
+        flex-wrap: wrap;
+      }
+
+      .section-card {
+        flex: 1;
+        flex-basis: 320px;
+        position: relative;
+        padding: 16px;
+        border: 1px solid rgba(122, 174, 255, 0.12);
+        border-radius: 18px;
+        background: rgba(5, 9, 24, 0.58);
+      }
+
+      .section-card h3 {
+        margin: 0 0 6px;
+        font-size: 1.06rem;
+        letter-spacing: -0.02em;
+      }
+
+      .section-description {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+
+      .links-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .link {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px 14px 13px;
+        border: 1px solid rgba(122, 174, 255, 0.18);
+        border-radius: 15px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+        text-decoration: none;
+        user-select: none;
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+      }
+
+      .link::after {
+        content: 'Explore';
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        color: var(--cyan);
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.72;
+      }
+
+      .link:hover {
+        transform: translateY(-3px);
+        border-color: rgba(106, 223, 255, 0.34);
+        background: rgba(14, 30, 72, 0.82);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.26);
+      }
+
+      .link:active {
+        transform: translateY(0);
+      }
+
+      .link-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .link-subtitle {
+        padding-right: 4rem;
+        color: var(--muted);
+        font-size: 0.84rem;
+        line-height: 1.35;
+      }
+
+      .link-disabled {
+        opacity: 0.55;
+        border-style: dashed;
+        cursor: default;
+      }
+
+      .link-disabled::after {
+        content: 'Soon';
+        color: var(--amber);
+      }
+
+      .link-disabled:hover {
+        transform: none;
+        border-color: rgba(122, 174, 255, 0.18);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+        box-shadow: none;
       }
 
       .context-menu {
-        z-index: 1;
         position: absolute;
+        z-index: 3;
       }
 
       .context-menu-item {
-        color: black;
-        cursor: pointer;
         display: flex;
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
+        padding: 0.75rem 1rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--cyan), var(--blue));
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        color: #07101f;
+        cursor: pointer;
         text-decoration: none;
-        background-color: var(--orange);
       }
 
-      @keyframes glitch {
-        0% { text-shadow: var(--purple) 0px 0px 0px; }
-        39% { text-shadow: var(--purple) 0px 0px 0px; }
-        40% { text-shadow: var(--purple) -1px -2px 0px; }
-        41% { text-shadow: white -1px 2px 3px; }
-        42% { text-shadow: white -2px -1px 0px; }
-        53% { text-shadow: var(--purple) 0px 0px 0px; }
-        54% { text-shadow: var(--purple) 1px 0px 3px; }
-        60% { text-shadow: var(--purple) 0px 1px 0px; }
-        61% { text-shadow: var(--purple) 0px 0px 0px; }
-        100% { text-shadow: var(--purple) 0px 0px 0px; }
+      @keyframes panelFloat {
+        from {
+          opacity: 0;
+          transform: translateY(26px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      @keyframes flicker {
-        0%, 100% { opacity: 1; }
-        10% { opacity: 0.9; }
-        20% { opacity: 0.8; }
-        30% { opacity: 0.0; }
-        40% { opacity: 0.6; }
-        50% { opacity: 0.5; }
-        60% { opacity: 0.4; }
-        70% { opacity: 0.3; }
-        80% { opacity: 0.7; }
-        90% { opacity: 0.1; }
+      .hero-panel,
+      .link-grid-panel {
+        animation: panelFloat 700ms ease both;
+      }
+
+      .link-grid-panel {
+        animation-delay: 120ms;
+      }
+
+      @media (max-width: 920px) {
+        body {
+          padding: 14px;
+        }
+
+        .page-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-panel,
+        .link-grid-panel {
+          padding: 18px;
+        }
+
+        .hero-footer {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .welcome-text h1 {
+          font-size: 2rem;
+        }
+
+        .link {
+          padding-right: 14px;
+        }
+
+        .link::after {
+          position: static;
+          margin-top: 6px;
+        }
+
+        .link-subtitle {
+          padding-right: 0;
+        }
       }
     </style>
   </head>
@@ -214,29 +404,79 @@
     <div class="vanta-layer"></div>
     <div class="cursor-layer"></div>
 
-    <div class='links-wrapper'>
-      <h3>My own projects</h3>
-      <div class="links-list">
-        <a class="link" href='https://note-keeper.space' target="_blank">Note Keeper</a>
-        <a class="link" href='/tetris/'>Tetris</a>
-        <a class="link" href='/screen-saver/'>Screen Saver</a>
-        <a class="link" href='/3d-shooter/'>3D Shooter (demo)</a>
-        <a class="link">Synthwave (demo)</a>
-      </div>
+    <main class="page-shell">
+      <section class="panel hero-panel">
+        <div class="ambient-glow"></div>
 
-      <h3>Other links</h3>
-      <div class="links-list">
-        <a class="link" href='https://sany18.github.io/cv/' target="_blank">Tantsiura Olexandr CV</a>
-        <a class="link" href='https://github.com/Sany18' target="_blank">GitHub</a>
-        <a class="link" href='https://www.linkedin.com/in/alexandr-tantsiura-49393a166/' target="_blank">LinkedIn</a>
-        <a class="link" href='https://hoxzy.blogspot.com/' target="_blank">Ukrainian Blog</a>
-      </div>
-    </div>
+        <div class="welcome-text">
+          <p class="eyebrow">Creative Developer Hub</p>
+          <h1>Welcome to Alter Space</h1>
+          <p class="lead">A personal launchpad for experiments, browser games, and small interfaces built by Tantsiura Olexandr. Neon atmosphere, fast access, no filler.</p>
+        </div>
 
-    <div class="welcome-text">
-      <h1>Welcome to Alter Space</h1>
-      <p>Here you can find some of my projects</p>
-      <p>Created by Tantsiura Olexandr (Hoxz)</p>
-    </div>
+        <div class="hero-meta">
+          <span class="meta-chip">Interactive demos</span>
+          <span class="meta-chip">Frontend experiments</span>
+          <span class="meta-chip">Open web projects</span>
+        </div>
+
+        <div class="hero-footer">
+          <span>Built and maintained by <strong>Hoxz</strong></span>
+          <span>Use the links on the right to jump straight into projects and profiles.</span>
+        </div>
+      </section>
+
+      <section class="panel link-grid-panel">
+        <article class="section-card">
+          <h3>Selected projects</h3>
+          <p class="section-description">Small products and playable experiments available directly from this space.</p>
+          <div class="links-list">
+            <a class="link" href="https://sany18.github.io/note-keeper/" target="_blank" rel="noreferrer">
+              <span class="link-title">Note Keeper</span>
+              <span class="link-subtitle">A focused notes app with a separate live deployment.</span>
+            </a>
+            <a class="link" href="/tetris/">
+              <span class="link-title">Tetris</span>
+              <span class="link-subtitle">Retro gameplay rebuilt for the browser.</span>
+            </a>
+            <a class="link" href="/screen-saver/">
+              <span class="link-title">Screen Saver</span>
+              <span class="link-subtitle">Ambient utility project with widgets and motion.</span>
+            </a>
+            <a class="link" href="/3d-shooter/">
+              <span class="link-title">3D Shooter</span>
+              <span class="link-subtitle">A compact first-person demo rendered on the web.</span>
+            </a>
+            <div class="link link-disabled">
+              <span class="link-title">Synthwave</span>
+              <span class="link-subtitle">Reserved slot for the next visual demo.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <h3>Elsewhere</h3>
+          <p class="section-description">Professional profile, source code, and writing outside this landing page.</p>
+          <div class="links-list">
+            <a class="link" href="https://sany18.github.io/cv/" target="_blank" rel="noreferrer">
+              <span class="link-title">Tantsiura Olexandr CV</span>
+              <span class="link-subtitle">Experience, skills, and background.</span>
+            </a>
+            <a class="link" href="https://github.com/Sany18" target="_blank" rel="noreferrer">
+              <span class="link-title">GitHub</span>
+              <span class="link-subtitle">Repositories, code history, and active experiments.</span>
+            </a>
+            <a class="link" href="https://www.linkedin.com/in/alexandr-tantsiura-49393a166/" target="_blank" rel="noreferrer">
+              <span class="link-title">LinkedIn</span>
+              <span class="link-subtitle">Professional network and public profile.</span>
+            </a>
+            <a class="link" href="https://hoxzy.blogspot.com/" target="_blank" rel="noreferrer">
+              <span class="link-title">Ukrainian Blog</span>
+              <span class="link-subtitle">Longer-form posts and personal writing.</span>
+            </a>
+          </div>
+        </article>
+      </section>
+    </main>
   </body>
 </html>
