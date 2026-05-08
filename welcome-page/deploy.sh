@@ -11,7 +11,7 @@ set +o allexport
 echo "Deploying to $REMOTE_HOST"
 
 # Build production command
-pnpm run build
+npm run build
 
 # Exclude and deploy the project to the remote server
 rsync -av \
