@@ -24,6 +24,8 @@ function Sidebar() {
     LocalStorageService.set('debug-settings', {
       cannonDebuggerEnabled: next.cannonDebuggerEnabled,
       lightDebuggerEnabled: next.lightDebuggerEnabled,
+      daytime: next.daytime,
+      thirdPerson: next.thirdPerson,
     });
   };
 

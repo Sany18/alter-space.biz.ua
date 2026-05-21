@@ -87,15 +87,44 @@ export class Location1 implements LocationInterface {
     });
 
     // Walls
+    // Layout: arena X[-200..200], Z[-160..220]. Player spawns near (0,20,50).
     const walls = [
-      [[5, 10, 20], [-20, 5, 20], [0, 0, 0]],
-      [[5, 10, 20], [-10, 5, 10], [0, 90, 0]],
-      [[5, 20, 20], [0, 10, -50], [0, 90, 0]],
-      [[5, 20, 20], [50, 10, 50], [0, -45, 0]],
-      [[5, 50, 20], [-30, 3, 40], [0, 0, 60]],
-      [[5, 50, 20], [-110, 15.2, 25], [0, 90, 90]],
-      [[5, 50, 20], [-75.5, 15.2, 40], [0, 0, 90]],
-    ]
+      // === OUTER PERIMETER ===
+      [[10, 24, 390],  [-200, 12,   30], [0, 0, 0]], // W outer wall
+      [[10, 24, 390],  [ 200, 12,   30], [0, 0, 0]], // E outer wall
+      [[410, 24, 10],  [   0, 12, -160], [0, 0, 0]], // N outer wall
+      [[410, 24, 10],  [   0, 12,  220], [0, 0, 0]], // S outer wall
+
+      // === CENTRAL BUILDING (X:-30..30, Z:-70..10) – two doorways N & S ===
+      [[10, 24, 80],   [-30, 12, -30], [0, 0, 0]],   // W side
+      [[10, 24, 80],   [ 30, 12, -30], [0, 0, 0]],   // E side
+      [[20, 24, 10],   [-20, 12, -70], [0, 0, 0]],   // N wall left  (20-unit door gap in centre)
+      [[20, 24, 10],   [ 20, 12, -70], [0, 0, 0]],   // N wall right
+      [[20, 24, 10],   [-20, 12,  10], [0, 0, 0]],   // S wall left  (20-unit door gap in centre)
+      [[20, 24, 10],   [ 20, 12,  10], [0, 0, 0]],   // S wall right
+
+      // === NW BUNKER (X:-170..-110, Z:-130..-70) – open on south-east ===
+      [[60, 20, 10],   [-140, 10, -130], [0, 0, 0]], // N wall
+      [[10, 20, 60],   [-170, 10, -100], [0, 0, 0]], // W wall
+      [[10, 20, 30],   [-110, 10, -114], [0, 0, 0]], // E partial wall (S door gap)
+
+      // === NE BUNKER (X:110..170, Z:-130..-70) – open on south-west ===
+      [[60, 20, 10],   [ 140, 10, -130], [0, 0, 0]], // N wall
+      [[10, 20, 60],   [ 170, 10, -100], [0, 0, 0]], // E wall
+      [[10, 20, 30],   [ 110, 10, -114], [0, 0, 0]], // W partial wall (S door gap)
+
+      // === COVER WALLS (scattered throughout open areas) ===
+      [[40, 16, 10],   [-100, 8,   60], [0, 0, 0]],  // SW cover – horizontal
+      [[10, 16, 40],   [-124, 8,   36], [0, 0, 0]],  // SW cover – vertical
+      [[40, 16, 10],   [ 100, 8,   60], [0, 0, 0]],  // SE cover – horizontal
+      [[10, 16, 40],   [ 124, 8,   36], [0, 0, 0]],  // SE cover – vertical
+      [[10, 16, 40],   [ -64, 8,  -36], [0, 0, 0]],  // W approach to central building
+      [[10, 16, 40],   [  64, 8,  -36], [0, 0, 0]],  // E approach to central building
+      [[40, 16, 10],   [   0, 8, -110], [0, 0, 0]],  // N centre cover
+      [[40, 16, 10],   [   0, 8, -136], [0, 0, 0]],  // Far-N centre cover
+      [[30, 16, 10],   [-144, 8,   20], [0, 0, 0]],  // W mid-area cover
+      [[30, 16, 10],   [ 144, 8,   20], [0, 0, 0]],  // E mid-area cover
+    ];
     walls.forEach(([size, position, rotation]) => {
       const wall = new ConcreteWall(this.scene)
         .setSize(size).setPosition(position).setRotation(rotation)
@@ -106,10 +135,42 @@ export class Location1 implements LocationInterface {
 
     // Boxes
     const boxes = [
-      [[10, 10, 10], [-110, 5, 50], [0, 0, 0]],
-      [[10, 10, 10], [30, 5, 20], [0, 0, 0]],
-      [[10, 10, 10], [40, 5, 20], [0, 0, 0]],
-      [[10, 10, 10], [30, 15, 20], [0, 12, 0]],
+      // Near spawn – SW cluster
+      [[16, 16, 16],  [ -56,  8, 144], [0,  15, 0]],
+      [[16, 16, 16],  [ -70,  8, 124], [0,   0, 0]],
+      [[16,  8, 16],  [ -56, 20, 144], [0,  30, 0]], // stacked on top
+
+      // Near spawn – SE cluster
+      [[16, 16, 16],  [  60,  8, 156], [0, -20, 0]],
+      [[16, 16, 16],  [  76,  8, 130], [0,   0, 0]],
+
+      // Central building – south entrance flanks
+      [[12, 12, 12],  [ -44,  6,  16], [0,   0, 0]],
+      [[12, 12, 12],  [  44,  6,  16], [0,  10, 0]],
+
+      // Central building – interior cover
+      [[10, 10, 10],  [ -16,  5,  -40], [0,  45, 0]],
+      [[10, 10, 10],  [  16,  5,  -40], [0, -30, 0]],
+
+      // NW bunker
+      [[16, 16, 16],  [-136,  8,  -96], [0,  10, 0]],
+      [[16, 16, 16],  [-150,  8, -110], [0,   0, 0]],
+
+      // NE bunker
+      [[16, 16, 16],  [ 136,  8,  -96], [0, -10, 0]],
+      [[16, 16, 16],  [ 150,  8, -110], [0,   0, 0]],
+
+      // N cover area – box cluster
+      [[12, 12, 12],  [ -24,  6, -124], [0,  20, 0]],
+      [[12, 12, 12],  [  24,  6, -124], [0,   0, 0]],
+      [[12, 24, 12],  [   0, 12, -124], [0,  45, 0]], // tall central crate
+
+      // Mid-arena scattered
+      [[10, 10, 10],  [-104,  5,  -10], [0,  20, 0]],
+      [[10, 10, 10],  [ 104,  5,  -10], [0, -15, 0]],
+      [[10, 10, 10],  [   0,  5,  -94], [0,   0, 0]],
+      [[10, 10, 10],  [-156,  5,   70], [0,  45, 0]],
+      [[10, 10, 10],  [ 156,  5,   70], [0,   0, 0]],
     ];
     boxes.forEach(([size, position, rotation]) => {
       const box = new WoodenBox(this.scene)
@@ -120,20 +181,20 @@ export class Location1 implements LocationInterface {
     });
 
     // Cubes
-    let coubes = 20;
-    const createCube = () => {
-      setTimeout(() => {
-        if (!this.isLocationAlive) return;
+    // let coubes = 20;
+    // const createCube = () => {
+    //   setTimeout(() => {
+    //     if (!this.isLocationAlive) return;
 
-        const box = new WoodenBox(this.scene)
-          .setPosition([5, 5, 0])
-          .addToScene({ static: false });
+    //     const box = new WoodenBox(this.scene)
+    //       .setPosition([5, 5, 0])
+    //       .addToScene({ static: false });
 
-        this.sceneObjects.push(box.mesh);
+    //     this.sceneObjects.push(box.mesh);
 
-        if (--coubes >= 0) createCube();
-      }, 200)
-    }; createCube();
+    //     if (--coubes >= 0) createCube();
+    //   }, 200)
+    // }; createCube();
   }
 
   destroy() {

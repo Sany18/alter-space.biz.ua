@@ -126,8 +126,10 @@ export default class Player {
   setThirdPerson = (enabled: boolean) => {
     this.config.camera.thirdPerson = enabled;
     if (enabled) {
-      // @ts-ignore
-      this.camera.position.set(...this.config.camera.thirdPersonPosition);
+      const [x, y, z] = this.config.camera.thirdPersonPosition;
+      this.camera.position.x = x;
+      this.camera.position.y = this.eulerX.x > 0 ? y : Math.sin(-this.eulerX.x) * 10 + y;
+      this.camera.position.z = this.eulerX.x < 0 ? Math.cos(this.eulerX.x) * z : z;
     } else {
       // @ts-ignore
       this.camera.position.set(...this.config.camera.position);
@@ -166,8 +168,13 @@ export default class Player {
     this.cannonBody.position.set(0, 20, 50);
     this.eulerX.set(0, 0, 0);
     this.eulerY.set(0, 0, 0);
-    // @ts-ignore`
-    this.camera.position.set(...this.config.camera.position);
+    if (this.config.camera.thirdPerson) {
+      // @ts-ignore
+      this.camera.position.set(...this.config.camera.thirdPersonPosition);
+    } else {
+      // @ts-ignore
+      this.camera.position.set(...this.config.camera.position);
+    }
     this.camera.quaternion.setFromEuler(this.eulerX);
   }
 

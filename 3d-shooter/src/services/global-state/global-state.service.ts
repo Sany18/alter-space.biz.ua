@@ -7,10 +7,11 @@ export class GlobalStateService {
   static state: any = {
     cannonDebuggerEnabled: _savedDebugSettings.cannonDebuggerEnabled ?? false,
     lightDebuggerEnabled: _savedDebugSettings.lightDebuggerEnabled ?? false,
-    daytime: true,
-    thirdPerson: true,
+    daytime: _savedDebugSettings.daytime ?? true,
+    thirdPerson: _savedDebugSettings.thirdPerson ?? false,
   };
-
+  
+  
   static loggerEnabled = false;
   static stateChanged = document.createElement('event');
 

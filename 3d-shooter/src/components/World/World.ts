@@ -25,7 +25,7 @@ export class World {
   cannonWorld: CANNON.World;
   cannonDebugger: any;
 
-  stats = new Stats();
+  stats: InstanceType<typeof Stats>;
   actions: { key: string; action: Function }[] = [];
   private internalActions: Function[] = []; // Phiysics, Stats, etc
 
@@ -80,7 +80,7 @@ export class World {
   destroy() {
     this.stopAnimationLoop();
     this.renderer.dispose();
-    document.body.removeChild(this.renderer.domElement);
+    this.renderer.domElement.remove();
     document.getElementById('fps')?.remove();
     document.getElementById('memory')?.remove();
     World.instance = undefined;
