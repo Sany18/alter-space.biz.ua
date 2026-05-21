@@ -11,6 +11,7 @@ import { ConcreteWall } from '../../components/ConcreteWall/ConcreteWall';
 import './Sidebar/Sidebar';
 import { getTexturePath } from '../../utils/three-utils';
 import { GlobalStateService } from '../../services/global-state/global-state.service';
+import { World } from '../../components/World/World';
 
 export class Location1 implements LocationInterface {
   isLocationAlive = true;
@@ -65,6 +66,21 @@ export class Location1 implements LocationInterface {
     // Floor
     const floor = new Floor(this.scene).addToScene();
     this.sceneObjects.push(floor.mesh);
+
+    const world = new World();
+    const _cameraDir = new THREE.Vector3();
+    const _cameraPos = new THREE.Vector3();
+    world.addAction('floor-follow-camera', () => {
+      world.camera.getWorldPosition(_cameraPos);
+      world.camera.getWorldDirection(_cameraDir);
+      // halfFOV + 10° buffer so tiles don't pop in at screen edges
+      const halfFOV = THREE.MathUtils.degToRad(world.camera.fov + 15);
+      floor.update(
+        _cameraPos.x, _cameraPos.z,
+        _cameraDir.x, _cameraDir.z,
+        halfFOV,
+      );
+    });
 
     // Walls
     const walls = [
