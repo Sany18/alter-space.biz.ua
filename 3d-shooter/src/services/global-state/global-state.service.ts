@@ -4,6 +4,7 @@ export class GlobalStateService {
   static state: any = {
     cannonDebuggerEnabled: false,
     lightDebuggerEnabled: false,
+    daytime: true,
   };
 
   static loggerEnabled = false;

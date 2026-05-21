@@ -21,15 +21,10 @@ function Sidebar() {
   };
 
   const onKeydown = (e: KeyboardEvent) => {
-    if (e.code !== 'Backquote') return;
+    if (e.code !== 'Backquote' || e.repeat) return;
     setOpen(open => {
-      const next = !open;
-      if (next) {
-        document.exitPointerLock();
-      } else {
-        setTimeout(() => document.body.requestPointerLock(), 1250);
-      }
-      return next;
+      if (!open) document.exitPointerLock();
+      return !open;
     });
   };
 
@@ -65,6 +60,16 @@ function Sidebar() {
           checked={globalState.lightDebuggerEnabled}
           onChange={e => inputHandler({ lightDebuggerEnabled: e.target.checked })} />
         Light Debugger Enabled
+      </label>
+
+      {/* Skybox toggle */}
+      <label htmlFor="daytime">
+        <input
+          id="daytime"
+          type="checkbox"
+          checked={globalState.daytime}
+          onChange={e => inputHandler({ daytime: e.target.checked })} />
+        Daytime
       </label>
     </div>
   );

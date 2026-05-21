@@ -10,6 +10,7 @@ import { ConcreteWall } from '../../components/ConcreteWall/ConcreteWall';
 
 import './Sidebar/Sidebar';
 import { getTexturePath } from '../../utils/three-utils';
+import { GlobalStateService } from '../../services/global-state/global-state.service';
 
 export class Location1 implements LocationInterface {
   isLocationAlive = true;
@@ -41,19 +42,23 @@ export class Location1 implements LocationInterface {
     // this.scene.fog = new THREE.Fog(0xffffff);
 
     // Daytime
-    document.getElementsByName('daytime')[0]?.addEventListener('change', (e: any) => {
-      if (e.target.checked) {
-        this.scene.background = nightSkyCube;
-        this.scene.fog = new THREE.Fog(0x000000);
-        this.light.directionalLight.intensity = 0.1;
-        this.light.ambientlight.intensity = 0.3;
-      } else {
+    const applyDaytime = (isDay: boolean) => {
+      if (isDay) {
         this.scene.background = skyCube;
         this.scene.fog = new THREE.Fog(0xffffff);
         this.light.directionalLight.intensity = 0.5;
         this.light.ambientlight.intensity = 1;
+      } else {
+        this.scene.background = nightSkyCube;
+        this.scene.fog = new THREE.Fog(0x000000);
+        this.light.directionalLight.intensity = 0.1;
+        this.light.ambientlight.intensity = 0.3;
       }
-    })
+    };
+    applyDaytime(GlobalStateService.state.daytime);
+    GlobalStateService.stateChanged.addEventListener('stateChanged', () => {
+      applyDaytime(GlobalStateService.state.daytime);
+    });
 
     // Scene objects
 
