@@ -37,7 +37,7 @@ export class Location1 implements LocationInterface {
     // Light
     this.light = new SceneLight(this.scene);
       this.light.addToScene(this.scene);
-    this.sceneObjects.push(this.light.directionalLight, this.light.hemisphereLight);
+    this.sceneObjects.push(this.light.directionalLight1, this.light.hemisphereLight);
 
     // Fog
     // this.scene.fog = new THREE.Fog(0xffffff);
@@ -47,14 +47,14 @@ export class Location1 implements LocationInterface {
       if (isDay) {
         this.scene.background = skyCube;
         this.scene.fog = new THREE.Fog(0xffffff);
-        this.light.directionalLight.intensity = 0.5;
+        this.light.directionalLight1.intensity = 0.5;
         this.light.hemisphereLight.color.set(0xddeeff);      // sky
         this.light.hemisphereLight.groundColor.set(0x886644); // ground
         this.light.hemisphereLight.intensity = 0.1;
       } else {
         this.scene.background = nightSkyCube;
         this.scene.fog = new THREE.Fog(0x000000);
-        this.light.directionalLight.intensity = 0.1;
+        this.light.directionalLight1.intensity = 0.1;
         this.light.hemisphereLight.color.set(0x111133);      // sky
         this.light.hemisphereLight.groundColor.set(0x000000); // ground
         this.light.hemisphereLight.intensity = 0.1;
@@ -180,22 +180,23 @@ export class Location1 implements LocationInterface {
       this.sceneObjects.push(box.mesh);
     });
 
-    // Cubes
-    // let coubes = 20;
-    // const createCube = () => {
-    //   setTimeout(() => {
-    //     if (!this.isLocationAlive) return;
+    // Small dynamic cubes spread across the map
+    [
+      [ -80, 8,  100], [  80, 8,  100], [   0, 8,  160],
+      [-160, 8,   80], [ 160, 8,   80], [ -40, 8,   80],
+      [  40, 8,   80], [ -80, 8,  -20], [  80, 8,  -20],
+      [   0, 8,  -50], [-140, 8,  -90], [ 140, 8,  -90],
+      [ -60, 8, -140], [  60, 8, -140], [   0, 8, -148],
+      [-180, 8,   8], [ 180, 8,   8], [ -20, 8,  200],
+      [  20, 8,  200], [ 100, 8, -140],
+    ].forEach(([x, y, z]) => {
+      const box = new WoodenBox(this.scene)
+        .setSize([8, 8, 8])
+        .setPosition([x, y, z])
+        .addToScene({ static: false });
 
-    //     const box = new WoodenBox(this.scene)
-    //       .setPosition([5, 5, 0])
-    //       .addToScene({ static: false });
-
-    //     this.sceneObjects.push(box.mesh);
-
-    //     if (--coubes >= 0) createCube();
-    //   }, 200)
-    // }; createCube();
-  }
+      this.sceneObjects.push(box.mesh);
+    })}
 
   destroy() {
     this.isLocationAlive = false;

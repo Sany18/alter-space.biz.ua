@@ -79,11 +79,14 @@ export class World {
 
   destroy() {
     this.stopAnimationLoop();
+    this.actions = [];
+    this.internalActions = [];
     this.renderer.dispose();
     this.renderer.domElement.remove();
     document.getElementById('fps')?.remove();
     document.getElementById('memory')?.remove();
-    World.instance = undefined;
+    // Keep World.instance so the same object is reused on HMR re-init.
+    // Resetting it would create a new instance whose canvas never appears.
   }
 
   // Main loop
@@ -118,14 +121,14 @@ export class World {
     this.renderer = new THREE.WebGLRenderer(config.renderer);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMapSoft = true;
-    this.renderer.shadowCameraNear = 1;
-    this.renderer.shadowCameraFar = this.camera.far;
-    this.renderer.shadowCameraFov = 50;
-    this.renderer.shadowMapBias = 0.0039;
-    this.renderer.shadowMapDarkness = .5;
-    this.renderer.shadowMapWidth = 1024;
-    this.renderer.shadowMapHeight = 1024;
+    // this.renderer.shadowMapSoft = true;
+    // this.renderer.shadowCameraNear = this.camera.near;
+    // this.renderer.shadowCameraFar = this.camera.far;
+    // this.renderer.shadowCameraFov = this.camera.fov;
+    // this.renderer.shadowMapBias = 0.0039;
+    // this.renderer.shadowMapDarkness = .5;
+    // this.renderer.shadowMapWidth = 1024;
+    // this.renderer.shadowMapHeight = 1024;
     document.body.appendChild(this.renderer.domElement);
 
     this.internalActions.push(() => {
@@ -135,7 +138,7 @@ export class World {
 
   private initCannon() {
     this.cannonWorld = new CANNON.World();
-    this.cannonWorld.gravity.set(0, -98.2, 0);
+    this.cannonWorld.gravity.set(0, -150, 0);
     this.cannonWorld.broadphase = new CANNON.NaiveBroadphase();
     this.cannonWorld.defaultContactMaterial.restitution = 0; // no bouncing
     this.scene.cannonWorld = this.cannonWorld;
@@ -146,7 +149,7 @@ export class World {
     ));
 
     this.cannonDebugger = CannonDebugger(this.scene, this.cannonWorld, {
-      color: 0x00ff00,
+      color: 0x00ff00, // green
       scale: 1,
       onInit: (body, mesh, shape) => {
         GlobalStateService.stateChanged.addEventListener('stateChanged', () => {

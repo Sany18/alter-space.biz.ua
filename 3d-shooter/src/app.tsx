@@ -16,18 +16,18 @@ const player = new Player(camera, scene);
 gameScene.addAction('player-control', player.control);
 
 gameScene.addAction('light-follow-player', () => {
-  location1.light.directionalLight.position.set(
+  location1.light.directionalLight1.position.set(
     player.mesh.position.x + location1.light.config.position.x,
     player.mesh.position.y + location1.light.config.position.y,
     player.mesh.position.z + location1.light.config.position.z
   );
 
-  location1.light.directionalLight.target.position.set(
+  location1.light.directionalLight1.target.position.set(
     player.mesh.position.x,
     player.mesh.position.y,
     player.mesh.position.z
   );
-  location1.light.directionalLight.target.updateMatrixWorld();
+  location1.light.directionalLight1.target.updateMatrixWorld();
 });
 
 // load player position and rotation
