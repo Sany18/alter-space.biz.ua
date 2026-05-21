@@ -7,6 +7,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: `/${env.BASE_URL}/`
+    base: env.BASE_URL ? `/${env.BASE_URL}/` : '/'
   }
 });

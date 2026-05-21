@@ -21,7 +21,16 @@ function Sidebar() {
   };
 
   const onKeydown = (e: KeyboardEvent) => {
-    if (e.code == 'Backquote') setOpen(open => !open);
+    if (e.code !== 'Backquote') return;
+    setOpen(open => {
+      const next = !open;
+      if (next) {
+        document.exitPointerLock();
+      } else {
+        setTimeout(() => document.body.requestPointerLock(), 1250);
+      }
+      return next;
+    });
   };
 
   React.useEffect(() => {
@@ -39,24 +48,24 @@ function Sidebar() {
       </button>
 
       {/* GlobalStateService.state.cannonDebuggerEnabled checkbox */}
-      <div>
+      <label htmlFor="cannon-debugger-enabled">
         <input
           id="cannon-debugger-enabled"
           type="checkbox"
           checked={globalState.cannonDebuggerEnabled}
           onChange={e => inputHandler({ cannonDebuggerEnabled: e.target.checked })} />
-        <label htmlFor="cannon-debugger-enabled">Cannon Debugger Enabled</label>
-      </div>
+        Cannon Debugger Enabled
+      </label>
 
       {/* GlobalStateService.state.lightDebuggerEnabled checkbox */}
-      <div>
+      <label htmlFor="light-debugger-enabled">
         <input
           id="light-debugger-enabled"
           type="checkbox"
           checked={globalState.lightDebuggerEnabled}
           onChange={e => inputHandler({ lightDebuggerEnabled: e.target.checked })} />
-        <label htmlFor="light-debugger-enabled">Light Debugger Enabled</label>
-      </div>
+        Light Debugger Enabled
+      </label>
     </div>
   );
 }
