@@ -7,6 +7,7 @@ import { Crosshair } from './Crosshair';
 import { PlayerObject } from './PlayerObject';
 import { LocalStorageService } from '../../services/localstorage/localstorage.service';
 import { GlobalStateService } from '../../services/global-state/global-state.service';
+import { PointerLockService } from '../../services/pointer-lock/pointer-lock.service';
 
 const vector000 = new THREE.Vector3(0, 0, 0);
 
@@ -25,6 +26,7 @@ export default class Player {
     standHeight: 5,
     crouchHeight: 2.5,
     bodyWidth: 2.5,
+    crouchingMovementSpeedMultiplier: 0.5,
   }
 
   mesh: any;
@@ -52,8 +54,6 @@ export default class Player {
   contactNormal = new CANNON.Vec3() // Normal in the contact, pointing *out* of whatever the player touched
   upAxis = new CANNON.Vec3(0, 1, 0)
 
-  private displayBlockerLastCallTime = 0;
-
   constructor(
     public camera: THREE.PerspectiveCamera,
     public scene: Scene
@@ -74,8 +74,9 @@ export default class Player {
       this.movementDirection.z = +this.moveForward - +this.moveBackward;
       this.movementDirection.x = +this.moveLeft - +this.moveRight;
 
+      const speed = this.config.movemetSpeed * (this.crouch ? this.config.crouchingMovementSpeedMultiplier : 1);
       let cameraDirection = this.convertXYZtoXZ(this.camera.getWorldDirection(vector000))
-        .multiplyScalar(this.config.movemetSpeed);
+        .multiplyScalar(speed);
 
       // Keyboard movement
       if (this.moveForward || this.moveBackward) {
@@ -109,9 +110,13 @@ export default class Player {
     if (crouching) {
       this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth, crouchHeight, bodyWidth)));
       this.cannonBody.position.y -= heigthDiff / 2; // keep feet at ground level
+      this.mesh.geometry.dispose();
+      this.mesh.geometry = new THREE.BoxGeometry(bodyWidth * 2, crouchHeight * 2, bodyWidth * 2);
     } else {
       this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth, standHeight, bodyWidth)));
       this.cannonBody.position.y += heigthDiff / 2;
+      this.mesh.geometry.dispose();
+      this.mesh.geometry = new THREE.BoxGeometry(bodyWidth * 2, standHeight * 2, bodyWidth * 2);
     }
 
     // this.camera.position.y = this.config.camera.thirdPersonPosition[1] + this.cameraYOffset;
@@ -170,8 +175,8 @@ export default class Player {
     document.addEventListener('mousemove', this.onMouseMove, false);
     document.addEventListener('keydown', this.keydown, false);
     document.addEventListener('keyup', this.keyup, false);
-    document.addEventListener('pointerlockchange', this.pointerlockchange);
-    document.querySelector('#blocker').addEventListener('click', this.displayBlocker, false);
+    PointerLockService.lockChanged.addEventListener('change', this.pointerlockchange);
+    document.querySelector('#blocker').addEventListener('click', PointerLockService.toggle, false);
     window.addEventListener('click', this.playerShotHandler, false);
     this.cannonBody.addEventListener('collide', this.cannonBodyCollide);
     GlobalStateService.stateChanged.addEventListener('stateChanged', this.onStateChanged);
@@ -181,8 +186,8 @@ export default class Player {
     document.removeEventListener('mousemove', this.onMouseMove, false);
     document.removeEventListener('keydown', this.keydown, false);
     document.removeEventListener('keyup', this.keyup, false);
-    document.removeEventListener('pointerlockchange', this.pointerlockchange);
-    document.querySelector('#blocker').removeEventListener('click', this.displayBlocker, false);
+    PointerLockService.lockChanged.removeEventListener('change', this.pointerlockchange);
+    document.querySelector('#blocker').removeEventListener('click', PointerLockService.toggle, false);
     window.removeEventListener('click', this.playerShotHandler, false);
     this.cannonBody.removeEventListener('collide', this.cannonBodyCollide);
     GlobalStateService.stateChanged.removeEventListener('stateChanged', this.onStateChanged);
@@ -276,7 +281,10 @@ export default class Player {
       case 'KeyD': case 'ArrowRight': this.moveRight = true; break;     // D right
       case 'KeyQ':                    this.rotationLeft = true; break;  // Q rotation left
       case 'KeyE':                    this.rotationRight = true; break; // E rotation right
-      case 'ControlLeft': case 'MetaLeft': case 'MetaRight':  this.crouch = true; break;  // Ctrl / CMD crouch
+      case 'ShiftLeft':
+      case 'ControlLeft':
+      case 'MetaLeft':
+      case 'MetaRight':               this.crouch = true; break;  // Ctrl / CMD crouch
       case 'Space':                   this.jump = true; break;          // Space jump
     }
   }
@@ -289,29 +297,15 @@ export default class Player {
       case 'KeyD': case 'ArrowRight': this.moveRight = false; break;     // D right
       case 'KeyQ':                    this.rotationLeft = false; break;  // Q rotation left
       case 'KeyE':                    this.rotationRight = false; break; // E rotation right
-      case 'ControlLeft': case 'MetaLeft': case 'MetaRight':  this.crouch = false; break; // Ctrl / CMD crouch
+      case 'ShiftLeft':               
+      case 'ControlLeft':
+      case 'MetaLeft':
+      case 'MetaRight':               this.crouch = false; break; // Ctrl / CMD crouch
       case 'Space':                   this.jump = false; break;          // Space jump
     }
   }
 
   private pointerlockchange = () => {
     this.moveForward = this.moveBackward = this.moveLeft = this.moveRight = this.jump = this.crouch = false;
-
-    document.getElementById('blocker').style.display = document.pointerLockElement ? 'none' : 'flex';
-
-    this.displayBlockerLastCallTime = new Date().getTime();
-  }
-
-  private displayBlocker = () => {
-    if (document.pointerLockElement) {
-      document.exitPointerLock();
-    } else {
-      // https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/3
-      // > Seems to be a about a 1-second time window in Chrome before pointer can be locked again.
-      const lastBlockInterval = new Date().getTime() - this.displayBlockerLastCallTime;
-      const timeout = lastBlockInterval < 1250 ? 1250 - lastBlockInterval : 0;
-
-      setTimeout(() => document.body.requestPointerLock(), timeout);
-    }
   }
 }

@@ -49,7 +49,6 @@ export class AbstractObject {
       ...params
     }
 
-
     // Except THREE.Line or THREE.BufferGeometry
     if (_params.cannonBody) this.addCannonBody(!_params.static);
 

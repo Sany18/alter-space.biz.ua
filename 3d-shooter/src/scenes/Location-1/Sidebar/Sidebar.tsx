@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom/client';
 
 import { GlobalStateService } from '../../../services/global-state/global-state.service';
 import { LocalStorageService } from '../../../services/localstorage/localstorage.service';
+import { PointerLockService } from '../../../services/pointer-lock/pointer-lock.service';
 
 import './Sidebar.scss';
 
@@ -26,18 +27,13 @@ function Sidebar() {
     });
   };
 
-  const lastExitRef = React.useRef(0);
-
   const onKeydown = (e: KeyboardEvent) => {
     if (e.code !== 'Backquote' || e.repeat) return;
     setOpen(open => {
       if (!open) {
-        document.exitPointerLock();
-        lastExitRef.current = Date.now();
+        PointerLockService.exit();
       } else {
-        const elapsed = Date.now() - lastExitRef.current;
-        const delay = elapsed < 1250 ? 1250 - elapsed : 0;
-        setTimeout(() => document.body.requestPointerLock(), delay);
+        PointerLockService.request();
       }
       return !open;
     });
