@@ -77,6 +77,15 @@ export class World {
     this.animationLoopActive = false;
   }
 
+  destroy() {
+    this.stopAnimationLoop();
+    this.renderer.dispose();
+    document.body.removeChild(this.renderer.domElement);
+    document.getElementById('fps')?.remove();
+    document.getElementById('memory')?.remove();
+    World.instance = undefined;
+  }
+
   // Main loop
   private animate() {
     if (!this.animationLoopActive) return;
@@ -128,6 +137,7 @@ export class World {
     this.cannonWorld = new CANNON.World();
     this.cannonWorld.gravity.set(0, -98.2, 0);
     this.cannonWorld.broadphase = new CANNON.NaiveBroadphase();
+    this.cannonWorld.defaultContactMaterial.restitution = 0; // no bouncing
     this.scene.cannonWorld = this.cannonWorld;
 
     this.internalActions.push(() => this.updateCannon());

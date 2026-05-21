@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
 
 import { GlobalStateService } from '../../../services/global-state/global-state.service';
+import { LocalStorageService } from '../../../services/localstorage/localstorage.service';
 
 import './Sidebar.scss';
 
@@ -17,7 +18,12 @@ function Sidebar() {
   const [globalState, setGlobalState] = GlobalStateService.useGlobalState();
 
   const inputHandler = (object: any) => {
-    setGlobalState({ ...globalState, ...object });
+    const next = { ...globalState, ...object };
+    setGlobalState(next);
+    LocalStorageService.set('debug-settings', {
+      cannonDebuggerEnabled: next.cannonDebuggerEnabled,
+      lightDebuggerEnabled: next.lightDebuggerEnabled,
+    });
   };
 
   const lastExitRef = React.useRef(0);
@@ -79,6 +85,16 @@ function Sidebar() {
           checked={globalState.daytime}
           onChange={e => inputHandler({ daytime: e.target.checked })} />
         Daytime
+      </label>
+
+      {/* Third person toggle */}
+      <label htmlFor="third-person">
+        <input
+          id="third-person"
+          type="checkbox"
+          checked={globalState.thirdPerson ?? true}
+          onChange={e => inputHandler({ thirdPerson: e.target.checked })} />
+        Third Person
       </label>
     </div>
   );

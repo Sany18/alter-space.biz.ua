@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
+import { LocalStorageService } from '../localstorage/localstorage.service';
+
+const _savedDebugSettings = LocalStorageService.get('debug-settings') || {};
 
 export class GlobalStateService {
   static state: any = {
-    cannonDebuggerEnabled: false,
-    lightDebuggerEnabled: false,
+    cannonDebuggerEnabled: _savedDebugSettings.cannonDebuggerEnabled ?? false,
+    lightDebuggerEnabled: _savedDebugSettings.lightDebuggerEnabled ?? false,
     daytime: true,
+    thirdPerson: true,
   };
 
   static loggerEnabled = false;

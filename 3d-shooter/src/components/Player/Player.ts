@@ -6,6 +6,7 @@ import { Scene } from '../../types/extended-threejs-types/scene.type';
 import { Crosshair } from './Crosshair';
 import { PlayerObject } from './PlayerObject';
 import { LocalStorageService } from '../../services/localstorage/localstorage.service';
+import { GlobalStateService } from '../../services/global-state/global-state.service';
 
 const vector000 = new THREE.Vector3(0, 0, 0);
 
@@ -17,10 +18,13 @@ export default class Player {
     camera: {
       minAngle: THREE.MathUtils.degToRad(-89),
       maxAngle: THREE.MathUtils.degToRad(89),
-      position: [0, 7.5, -2.6],
+      position: [0, 5, -2.6],
       thirdPerson: true,
       thirdPersonPosition: [0, 7.5, 10],
     },
+    standHeight: 5,
+    crouchHeight: 2.5,
+    bodyWidth: 2.5,
   }
 
   mesh: any;
@@ -60,6 +64,8 @@ export default class Player {
 
   control = () => {
     if (document.pointerLockElement) {
+      this.applyCrouch(this.crouch);
+
       this.cannonBody.quaternion.setFromEuler(this.eulerY.x, this.eulerY.y, this.eulerY.z);
 
       this.cannonBody.velocity.x = 0;
@@ -87,6 +93,44 @@ export default class Player {
         this.canJump = false;
       }
     }
+  }
+
+  private crouchingPreviousState = false;
+  private applyCrouch(crouching: boolean) {
+    if (crouching === this.crouchingPreviousState) return;
+    const { standHeight, crouchHeight, bodyWidth } = this.config;
+    const heigthDiff = standHeight - crouchHeight; // 2.5
+
+    // Swap Cannon body shape.
+    while (this.cannonBody.shapes.length > 0) {
+      this.cannonBody.removeShape(this.cannonBody.shapes[0]);
+    }
+
+    if (crouching) {
+      this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth, crouchHeight, bodyWidth)));
+      this.cannonBody.position.y -= heigthDiff / 2; // keep feet at ground level
+    } else {
+      this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth, standHeight, bodyWidth)));
+      this.cannonBody.position.y += heigthDiff / 2;
+    }
+
+    // this.camera.position.y = this.config.camera.thirdPersonPosition[1] + this.cameraYOffset;
+    this.crouchingPreviousState = crouching;
+  }
+
+  setThirdPerson = (enabled: boolean) => {
+    this.config.camera.thirdPerson = enabled;
+    if (enabled) {
+      // @ts-ignore
+      this.camera.position.set(...this.config.camera.thirdPersonPosition);
+    } else {
+      // @ts-ignore
+      this.camera.position.set(...this.config.camera.position);
+    }
+  }
+
+  private onStateChanged = () => {
+    this.setThirdPerson(GlobalStateService.state.thirdPerson);
   }
 
   savePosition = () => {
@@ -130,6 +174,7 @@ export default class Player {
     document.querySelector('#blocker').addEventListener('click', this.displayBlocker, false);
     window.addEventListener('click', this.playerShotHandler, false);
     this.cannonBody.addEventListener('collide', this.cannonBodyCollide);
+    GlobalStateService.stateChanged.addEventListener('stateChanged', this.onStateChanged);
   }
 
   removeEventListeners = () => {
@@ -140,6 +185,7 @@ export default class Player {
     document.querySelector('#blocker').removeEventListener('click', this.displayBlocker, false);
     window.removeEventListener('click', this.playerShotHandler, false);
     this.cannonBody.removeEventListener('collide', this.cannonBodyCollide);
+    GlobalStateService.stateChanged.removeEventListener('stateChanged', this.onStateChanged);
   }
 
   private playerShotHandler = () => {
@@ -209,7 +255,6 @@ export default class Player {
 
     if (this.config.camera.thirdPerson) {
       const [x, y, z] = this.config.camera.thirdPersonPosition;
-
       this.camera.position.y = this.eulerX.x > 0 ? y : Math.sin(-this.eulerX.x) * 10 + y; // Good
       this.camera.position.z = this.eulerX.x < 0 ? Math.cos(this.eulerX.x) * z : z; // ~ So so
     }
@@ -219,6 +264,11 @@ export default class Player {
   }
 
   private keydown = (event: any) => {
+    // Prevent CMD+W/Q/S/A/D etc. from triggering browser actions while in-game.
+    // CMD+R (reload) is intentionally left through.
+    // Note: CMD+W cannot be blocked in Chrome/Safari — the browser intercepts it.
+    if (event.metaKey && event.code !== 'KeyR') event.preventDefault();
+
     switch (event.code) {
       case 'KeyW': case 'ArrowUp':    this.moveForward = true; break;   // W forward
       case 'KeyS': case 'ArrowDown':  this.moveBackward = true; break;  // S back
@@ -226,7 +276,7 @@ export default class Player {
       case 'KeyD': case 'ArrowRight': this.moveRight = true; break;     // D right
       case 'KeyQ':                    this.rotationLeft = true; break;  // Q rotation left
       case 'KeyE':                    this.rotationRight = true; break; // E rotation right
-      case 'ControlLeft':             this.crouch = true; break;        // Ctrl crouch
+      case 'ControlLeft': case 'MetaLeft': case 'MetaRight':  this.crouch = true; break;  // Ctrl / CMD crouch
       case 'Space':                   this.jump = true; break;          // Space jump
     }
   }
@@ -239,13 +289,13 @@ export default class Player {
       case 'KeyD': case 'ArrowRight': this.moveRight = false; break;     // D right
       case 'KeyQ':                    this.rotationLeft = false; break;  // Q rotation left
       case 'KeyE':                    this.rotationRight = false; break; // E rotation right
-      case 'ControlLeft':             this.crouch = false; break;        // Ctrl crouch
+      case 'ControlLeft': case 'MetaLeft': case 'MetaRight':  this.crouch = false; break; // Ctrl / CMD crouch
       case 'Space':                   this.jump = false; break;          // Space jump
     }
   }
 
   private pointerlockchange = () => {
-    this.moveForward = this.moveBackward = this.moveLeft = this.moveRight = this.jump = false;
+    this.moveForward = this.moveBackward = this.moveLeft = this.moveRight = this.jump = this.crouch = false;
 
     document.getElementById('blocker').style.display = document.pointerLockElement ? 'none' : 'flex';
 
@@ -261,9 +311,7 @@ export default class Player {
       const lastBlockInterval = new Date().getTime() - this.displayBlockerLastCallTime;
       const timeout = lastBlockInterval < 1250 ? 1250 - lastBlockInterval : 0;
 
-      setTimeout(() => {
-        document.body.requestPointerLock();
-      }, timeout);
+      setTimeout(() => document.body.requestPointerLock(), timeout);
     }
   }
 }

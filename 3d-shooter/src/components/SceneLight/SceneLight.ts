@@ -10,12 +10,13 @@ export class SceneLight {
     shadowResolution: 2048
   }
 
-  directionalLight: THREE.DirectionalLight
-  ambientlight: THREE.AmbientLight;
+  directionalLight: THREE.DirectionalLight;
+  hemisphereLight: THREE.HemisphereLight;
 
   constructor(scene: any) {
     this.directionalLight = new THREE.DirectionalLight(this.config.color, .5);
-    this.ambientlight = new THREE.AmbientLight(0x404040);
+    // Sky colour from above, ground colour from below — more natural than flat AmbientLight.
+    this.hemisphereLight = new THREE.HemisphereLight(0xddeeff, 0x886644, 1);
 
     this.directionalLight.position.set(this.config.position.x, this.config.position.y, this.config.position.z);
     this.directionalLight.target.position.set(0, 0, 0);
@@ -39,6 +40,6 @@ export class SceneLight {
 
   addToScene(scene: any) {
     scene.add(this.directionalLight);
-    scene.add(this.ambientlight);
+    scene.add(this.hemisphereLight);
   }
 }

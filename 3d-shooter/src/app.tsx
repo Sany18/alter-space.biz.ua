@@ -48,3 +48,12 @@ function App() {
 }
 
 export default App;
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    gameScene.destroy();
+    location1.destroy();
+    player.removeEventListeners();
+    document.getElementById('side-menu')?.remove();
+  });
+}

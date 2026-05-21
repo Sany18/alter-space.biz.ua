@@ -37,7 +37,7 @@ export class Location1 implements LocationInterface {
     // Light
     this.light = new SceneLight(this.scene);
       this.light.addToScene(this.scene);
-    this.sceneObjects.push(this.light.directionalLight, this.light.ambientlight);
+    this.sceneObjects.push(this.light.directionalLight, this.light.hemisphereLight);
 
     // Fog
     // this.scene.fog = new THREE.Fog(0xffffff);
@@ -48,12 +48,16 @@ export class Location1 implements LocationInterface {
         this.scene.background = skyCube;
         this.scene.fog = new THREE.Fog(0xffffff);
         this.light.directionalLight.intensity = 0.5;
-        this.light.ambientlight.intensity = 1;
+        this.light.hemisphereLight.color.set(0xddeeff);      // sky
+        this.light.hemisphereLight.groundColor.set(0x886644); // ground
+        this.light.hemisphereLight.intensity = 0.1;
       } else {
         this.scene.background = nightSkyCube;
         this.scene.fog = new THREE.Fog(0x000000);
         this.light.directionalLight.intensity = 0.1;
-        this.light.ambientlight.intensity = 0.3;
+        this.light.hemisphereLight.color.set(0x111133);      // sky
+        this.light.hemisphereLight.groundColor.set(0x000000); // ground
+        this.light.hemisphereLight.intensity = 0.1;
       }
     };
     applyDaytime(GlobalStateService.state.daytime);
