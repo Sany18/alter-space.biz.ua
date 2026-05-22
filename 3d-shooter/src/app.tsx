@@ -2,6 +2,7 @@ import Player from "./components/Player/Player";
 import { World } from "./components/World/World";
 import { Location1 } from "./scenes/Location-1/Location-1";
 import { GlobalStateService } from "./services/global-state/global-state.service";
+import { mountMainMenu, unmountMainMenu } from "./components/MainMenu/MainMenu";
 
 const gameScene = new World();
 gameScene.init();
@@ -33,6 +34,8 @@ GlobalStateService.set('location1', location1);
 GlobalStateService.set('scene', scene);
 GlobalStateService.set('camera', camera);
 
+mountMainMenu();
+
 function App() {
   return <></>
 }
@@ -45,5 +48,6 @@ if (import.meta.hot) {
     location1.destroy();
     player.removeEventListeners();
     document.getElementById('side-menu')?.remove();
+    unmountMainMenu();
   });
 }

@@ -13,10 +13,20 @@ export class SceneLight {
   csm: CSM;
   hemisphereLight: THREE.HemisphereLight;
   private csmHelper: CSMHelper;
+  private _shadowQuality: string = GlobalStateService.state.shadowQuality ?? 'high';
+
+  static readonly shadowQualitySizeMap: Record<string, number> = {
+    low: 1024,
+    mid: 2048,
+    high: 4096,
+    super: 8192,
+  };
 
   constructor(scene: any, camera: THREE.PerspectiveCamera) {
     // Sky colour from above, ground colour from below — more natural than flat AmbientLight.
     this.hemisphereLight = new THREE.HemisphereLight(0xddeeff, 0x886644, 1);
+
+    const initialShadowSize = SceneLight.shadowQualitySizeMap[this._shadowQuality] ?? 2048;
 
     this.csm = new CSM({
       camera,
@@ -24,7 +34,7 @@ export class SceneLight {
       cascades: 3,
       maxFar: camera.far,
       mode: 'practical',
-      shadowMapSize: 2048,
+      shadowMapSize: initialShadowSize,
       lightDirection: this.config.lightDirection,
       lightIntensity: 0.5,
       lightNear: 1,
@@ -41,6 +51,24 @@ export class SceneLight {
 
     GlobalStateService.stateChanged.addEventListener('stateChanged', () => {
       this.csmHelper.visible = GlobalStateService.state.lightDebuggerEnabled;
+
+      const quality = GlobalStateService.state.shadowQuality;
+      if (quality && quality !== this._shadowQuality) {
+        this._shadowQuality = quality;
+        this.applyShadowQuality(quality);
+      }
+    });
+  }
+
+  applyShadowQuality(quality: string) {
+    const size = SceneLight.shadowQualitySizeMap[quality] ?? 2048;
+    this.csm.shadowMapSize = size;
+    this.csm.lights.forEach(light => {
+      light.shadow.mapSize.set(size, size);
+      if (light.shadow.map) {
+        light.shadow.map.dispose();
+        (light.shadow as any).map = null;
+      }
     });
   }
 

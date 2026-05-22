@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { LocalStorageService } from '../localstorage/localstorage.service';
 
 const _savedDebugSettings = LocalStorageService.get('debug-settings') || {};
+const _savedGraphicsSettings = LocalStorageService.get('graphics-settings') || {};
 
 export class GlobalStateService {
   static state: any = {
@@ -9,6 +10,7 @@ export class GlobalStateService {
     lightDebuggerEnabled: _savedDebugSettings.lightDebuggerEnabled ?? false,
     daytime: _savedDebugSettings.daytime ?? true,
     thirdPerson: _savedDebugSettings.thirdPerson ?? false,
+    shadowQuality: _savedGraphicsSettings.shadowQuality ?? 'high',
   };
   
   

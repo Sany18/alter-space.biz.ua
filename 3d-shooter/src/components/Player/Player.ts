@@ -183,7 +183,6 @@ export default class Player {
     document.addEventListener('keydown', this.keydown, false);
     document.addEventListener('keyup', this.keyup, false);
     PointerLockService.lockChanged.addEventListener('change', this.pointerlockchange);
-    document.querySelector('#blocker').addEventListener('click', PointerLockService.toggle, false);
     window.addEventListener('click', this.playerShotHandler, false);
     this.cannonBody.addEventListener('collide', this.cannonBodyCollide);
     GlobalStateService.stateChanged.addEventListener('stateChanged', this.onStateChanged);
@@ -194,7 +193,6 @@ export default class Player {
     document.removeEventListener('keydown', this.keydown, false);
     document.removeEventListener('keyup', this.keyup, false);
     PointerLockService.lockChanged.removeEventListener('change', this.pointerlockchange);
-    document.querySelector('#blocker').removeEventListener('click', PointerLockService.toggle, false);
     window.removeEventListener('click', this.playerShotHandler, false);
     this.cannonBody.removeEventListener('collide', this.cannonBodyCollide);
     GlobalStateService.stateChanged.removeEventListener('stateChanged', this.onStateChanged);
