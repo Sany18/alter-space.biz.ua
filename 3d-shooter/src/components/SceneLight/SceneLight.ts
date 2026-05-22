@@ -16,6 +16,7 @@ export class SceneLight {
   private _shadowQuality: string = GlobalStateService.state.shadowQuality ?? 'high';
 
   static readonly shadowQualitySizeMap: Record<string, number> = {
+    none: 0,
     low: 1024,
     mid: 2048,
     high: 4096,
@@ -49,6 +50,9 @@ export class SceneLight {
     this.csmHelper.displayShadowBounds = true;
     scene.add(this.csmHelper);
 
+    // Apply the persisted quality immediately (e.g. 'none' must disable castShadow on startup)
+    this.applyShadowQuality(this._shadowQuality);
+
     GlobalStateService.stateChanged.addEventListener('stateChanged', () => {
       this.csmHelper.visible = GlobalStateService.state.lightDebuggerEnabled;
 
@@ -61,9 +65,17 @@ export class SceneLight {
   }
 
   applyShadowQuality(quality: string) {
+    if (quality === 'none') {
+      this.csm.lights.forEach(light => {
+        light.castShadow = false;
+      });
+      return;
+    }
+    
     const size = SceneLight.shadowQualitySizeMap[quality] ?? 2048;
     this.csm.shadowMapSize = size;
     this.csm.lights.forEach(light => {
+      light.castShadow = true;
       light.shadow.mapSize.set(size, size);
       if (light.shadow.map) {
         light.shadow.map.dispose();

@@ -9,10 +9,11 @@ import './MainMenu.scss';
 
 type Page = 'main' | 'settings';
 
-const SHADOW_QUALITY_OPTIONS = ['low', 'mid', 'high', 'super'] as const;
+const SHADOW_QUALITY_OPTIONS = ['none', 'low', 'mid', 'high', 'super'] as const;
 type ShadowQuality = typeof SHADOW_QUALITY_OPTIONS[number];
 
 const SHADOW_QUALITY_LABELS: Record<ShadowQuality, string> = {
+  none: 'None',
   low: 'Low',
   mid: 'Medium',
   high: 'High',

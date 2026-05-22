@@ -16,7 +16,7 @@ const config = {
 export class World {
   private static instance: World;
 
-  clock: THREE.Clock;
+  clock: THREE.Timer;
   scene: Scene;
   camera: THREE.PerspectiveCamera;
   renderer: any;
@@ -93,6 +93,7 @@ export class World {
   private animate() {
     if (!this.animationLoopActive) return;
 
+    this.clock.update();
     this.actions.forEach(action => action.action());
     this.internalActions.forEach(action => action());
 
@@ -100,7 +101,7 @@ export class World {
   }
 
   private initClock() {
-    this.clock = new THREE.Clock();
+    this.clock = new THREE.Timer();
   }
 
   private initScene() {
