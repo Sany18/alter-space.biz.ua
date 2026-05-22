@@ -34,10 +34,12 @@ export class Location1 implements LocationInterface {
       skyboxNames.map((_, i) => getTexturePath(`${i + 1}.png`, 'skybox-space')));
     this.scene.background = skyCube;
 
+    const world = new World();
+
     // Light
-    this.light = new SceneLight(this.scene);
-      this.light.addToScene(this.scene);
-    this.sceneObjects.push(this.light.directionalLight1, this.light.hemisphereLight);
+    this.light = new SceneLight(this.scene, world.camera);
+    this.light.addToScene(this.scene);
+    this.sceneObjects.push(this.light.hemisphereLight);
 
     // Fog
     // this.scene.fog = new THREE.Fog(0xffffff);
@@ -47,16 +49,16 @@ export class Location1 implements LocationInterface {
       if (isDay) {
         this.scene.background = skyCube;
         this.scene.fog = new THREE.Fog(0xffffff);
-        this.light.directionalLight1.intensity = 0.5;
-        this.light.hemisphereLight.color.set(0xddeeff);      // sky
-        this.light.hemisphereLight.groundColor.set(0x886644); // ground
+        this.light.setIntensity(0.5);
+        this.light.hemisphereLight.color.set(0xddeeff);
+        this.light.hemisphereLight.groundColor.set(0x886644);
         this.light.hemisphereLight.intensity = 0.1;
       } else {
         this.scene.background = nightSkyCube;
         this.scene.fog = new THREE.Fog(0x000000);
-        this.light.directionalLight1.intensity = 0.1;
-        this.light.hemisphereLight.color.set(0x111133);      // sky
-        this.light.hemisphereLight.groundColor.set(0x000000); // ground
+        this.light.setIntensity(0.1);
+        this.light.hemisphereLight.color.set(0x111133);
+        this.light.hemisphereLight.groundColor.set(0x000000);
         this.light.hemisphereLight.intensity = 0.1;
       }
     };
@@ -69,9 +71,9 @@ export class Location1 implements LocationInterface {
 
     // Floor
     const floor = new Floor(this.scene).addToScene();
+    this.light.csm.setupMaterial(floor.mesh.material as THREE.Material);
     this.sceneObjects.push(floor.mesh);
 
-    const world = new World();
     const _cameraDir = new THREE.Vector3();
     const _cameraPos = new THREE.Vector3();
     world.addAction('floor-follow-camera', () => {
@@ -130,6 +132,7 @@ export class Location1 implements LocationInterface {
         .setSize(size).setPosition(position).setRotation(rotation)
         .addToScene();
 
+      this.light.csm.setupMaterial(wall.mesh.material as THREE.Material);
       this.sceneObjects.push(wall.mesh);
     });
 
@@ -177,6 +180,7 @@ export class Location1 implements LocationInterface {
         .setSize(size).setPosition(position).setRotation(rotation)
         .addToScene();
 
+      this.light.csm.setupMaterial(box.mesh.material as THREE.Material);
       this.sceneObjects.push(box.mesh);
     });
 
@@ -195,12 +199,14 @@ export class Location1 implements LocationInterface {
         .setPosition([x, y, z])
         .addToScene({ static: false });
 
+      this.light.csm.setupMaterial(box.mesh.material as THREE.Material);
       this.sceneObjects.push(box.mesh);
     })}
 
   destroy() {
     this.isLocationAlive = false;
 
+    this.light.destroy();
     this.sceneObjects.forEach(obj => {
       this.scene.remove(obj);
     })
