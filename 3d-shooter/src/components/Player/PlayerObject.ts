@@ -382,11 +382,11 @@ export class PlayerObject extends AbstractObject {
     lerp_to(this.spine, 'rx', THREE.MathUtils.lerp(-WALK_SPINE_LEAN * b + CROUCH_SPINE * cb, JUMP_SPINE + JC_SPINE * cb, jb), lr);
 
     // ── Lower-body yaw: rotate for strafing only ────────────────────────────
-    // Strafe rotation only on the ground — suppressed in air to prevent waving.
+    // Body turn blend — active whenever moving (ground or air).
     // "Tent" mapping: front hemisphere (|camRel| ≤ π/2) → exact angle (45°→45°),
     // back hemisphere folds back to 0 so backward walk has no body turn and
     // the leg phase-reversal handles the direction instead.
-    const strafeB = b > 0.2 ? b * (1 - jb) : 0;
+    const strafeB = b > 0.2 ? b : 0;
     const absCamRel = Math.abs(camRel);
     const bodyTurn  = absCamRel <= Math.PI / 2
       ? camRel                                          // front: exact

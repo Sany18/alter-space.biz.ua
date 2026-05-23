@@ -18,7 +18,7 @@ export const config = {
   camera: {
     minAngle: THREE.MathUtils.degToRad(-89),
     maxAngle: THREE.MathUtils.degToRad(89),
-    position: [0, 5, -2.6],
+    position: [0, 4.6, -1.0] as [number, number, number],
     thirdPerson: true,
     thirdPersonPosition: [0, 7.5, 10],
   },
@@ -203,7 +203,9 @@ export default class Player {
     this.eulerX.copy(state.camera.eulerX);
     this.eulerY.copy(state.camera.eulerY);
     this.camera.quaternion.setFromEuler(this.eulerX);
-    this.camera.position.copy(state.camera.position);
+    // Camera local offset is a config setting — do not restore from saved state
+    // to ensure config.camera.position changes always take effect.
+    this.setThirdPerson(config.camera.thirdPerson);
   }
 
   resetPosition = () => {
