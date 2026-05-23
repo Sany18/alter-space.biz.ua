@@ -15,13 +15,12 @@ const C_HAIR  = 0x2c1810;  // dark-brown hair
 // State blend rates (higher = faster transition)
 const WALK_BLEND_IN    = 12;
 const WALK_BLEND_OUT   = 5;
-const JUMP_BLEND_IN    = 14;
-const JUMP_BLEND_OUT   = 7;
-const CROUCH_BLEND_IN  = 10;
+const JUMP_BLEND_IN    = 20;
+const JUMP_BLEND_OUT   = 10;
+const CROUCH_BLEND_IN  = 12;
 const CROUCH_BLEND_OUT = 8;
 
 // Per-frame lerp speeds (higher = snappier)
-const LIMB_LERP_SPEED      = 20;
 const BODY_TURN_LERP_SPEED = 8;
 
 const WALK_SPEED_THRESHOLD = 0.5;   // xzSpeed below this = idle
@@ -322,9 +321,11 @@ export class PlayerObject extends AbstractObject {
     // that would cause rapid idle↔walk flickering near object edges.
     // Jump and crouch use instant snap since they come from explicit input.
     const walkRate = isMoving ? WALK_BLEND_IN : WALK_BLEND_OUT;
-    this._walkBlend   += (+(isMoving)    - this._walkBlend)   * (1 - Math.exp(-walkRate * delta));
-    this._jumpBlend    = isJumping   ? 1.0 : 0.0;
-    this._crouchBlend  = isCrouching ? 1.0 : 0.0;
+    this._walkBlend += (+isMoving - this._walkBlend) * (1 - Math.exp(-walkRate * delta));
+    const jumpRate = isJumping ? JUMP_BLEND_IN : JUMP_BLEND_OUT;
+    this._jumpBlend += (+isJumping - this._jumpBlend) * (1 - Math.exp(-jumpRate * delta));
+    const crouchRate = isCrouching ? CROUCH_BLEND_IN : CROUCH_BLEND_OUT;
+    this._crouchBlend += (+isCrouching - this._crouchBlend) * (1 - Math.exp(-crouchRate * delta));
 
     // Camera-relative movement angle.
     // velocityAngle = π when moving forward (camera faces -Z → atan2(0,-1) = π),
@@ -332,18 +333,17 @@ export class PlayerObject extends AbstractObject {
     let camRel = velocityAngle - eulerYaw - Math.PI;
     camRel = Math.atan2(Math.sin(camRel), Math.cos(camRel)); // wrap to [-π, π]
 
-    // Phase direction: +1 when moving forward (cos > 0), -1 when backward (cos < 0).
-    // This makes the leg swing reverse for backward movement.
-    if (isMoving) {
+    // Phase only advances on the ground — prevents sin(t) oscillation mid-air.
+    if (isMoving && !isJumping) {
       const phaseDir = Math.cos(camRel) >= 0 ? 1 : -1;
       this._animPhase += delta * (WALK_PHASE_BASE + xzSpeed * WALK_PHASE_SCALE) * phaseDir;
     }
 
-    const t   = this._animPhase;
-    const b   = this._walkBlend;
-    const jb  = this._jumpBlend;
-    const cb  = this._crouchBlend;
-    const lr  = 1.0; // immediate joint snap
+    const t = this._animPhase;
+    const b = this._walkBlend;
+    const jb = this._jumpBlend;
+    const cb = this._crouchBlend;
+    const lr = 1.0; // immediate joint snap
     const lrS = 1 - Math.exp(-BODY_TURN_LERP_SPEED * delta); // smooth body-turn
 
     // ── Legs: walk swing + crouch offset → jump tuck (deepened by crouch) ───
@@ -352,8 +352,8 @@ export class PlayerObject extends AbstractObject {
     //  Jump targets also respect cb: jump+crouch = deeper tuck.
     const wLThigh  =  Math.sin(t) * THIGH_SWING * b;
     const wRThigh  = -Math.sin(t) * THIGH_SWING * b;
-    const wLKnee   = Math.max(0,  Math.sin(t + Math.PI * 0.5)) * KNEE_BEND * b;
-    const wRKnee   = Math.max(0, -Math.sin(t + Math.PI * 0.5)) * KNEE_BEND * b;
+    const wLKnee = Math.max(0,  Math.sin(t + Math.PI * 0.5)) * KNEE_BEND * b;
+    const wRKnee = Math.max(0, -Math.sin(t + Math.PI * 0.5)) * KNEE_BEND * b;
     lerp_to(this.leftHipPivot,   'rx', THREE.MathUtils.lerp(wLThigh - CROUCH_THIGH * cb, -JUMP_THIGH - JC_THIGH * cb, jb), lr);
     lerp_to(this.rightHipPivot,  'rx', THREE.MathUtils.lerp(wRThigh - CROUCH_THIGH * cb, -JUMP_THIGH - JC_THIGH * cb, jb), lr);
     lerp_to(this.leftKneePivot,  'rx', THREE.MathUtils.lerp(wLKnee  + CROUCH_KNEE  * cb,  JUMP_KNEE  + JC_KNEE  * cb, jb), lr);
@@ -368,8 +368,9 @@ export class PlayerObject extends AbstractObject {
     // ── Hips: walk bob + crouch drop → slightly lowered when jump+crouch ────
     const wHipBob = Math.abs(Math.sin(t)) * HIP_BOB_AMP * b;
     lerp_to(this.hips, 'y', THREE.MathUtils.lerp(wHipBob - CROUCH_HIP * cb, -JC_HIP * cb, jb), lr);
-    // Hip pitch: rock forward/back naturally with walk cycle; tilt forward when crouching
-    lerp_to(this.hips, 'rx', Math.sin(t) * 0.08 * b + CROUCH_HIP_PITCH * cb, lr);
+    // Hip pitch: rock forward/back with walk cycle; tilt forward when crouching.
+    // Gated by (1-jb) so it stops mid-air.
+    lerp_to(this.hips, 'rx', Math.sin(t) * 0.08 * b * (1 - jb) + CROUCH_HIP_PITCH * cb, lr);
 
     // ── bodyRoot vertical offset: compensate for the physics body center shift ──
     //  applyCrouch moves cannonBody.position.y down by _crouchBodyOffset so the
@@ -380,10 +381,8 @@ export class PlayerObject extends AbstractObject {
     lerp_to(this.spine, 'rx', THREE.MathUtils.lerp(-WALK_SPINE_LEAN * b + CROUCH_SPINE * cb, JUMP_SPINE + JC_SPINE * cb, jb), lr);
 
     // ── Lower-body yaw: rotate for strafing only ────────────────────────────
-    //  Only apply the strafe offset when meaningfully walking (b > 0.2).
-    //  Below that threshold the velocity angle is noise from micro-physics,
-    //  so we lerp toward neutral (Math.PI) to avoid ghost left/right flicker.
-    const strafeB = b > 0.2 ? b : 0;
+    // Strafe rotation only on the ground — suppressed in air to prevent waving.
+    const strafeB = b > 0.2 ? b * (1 - jb) : 0;
     const targetBodyYaw = Math.PI + Math.sin(camRel) * MAX_BODY_ROT * strafeB;
     let bodyYawDiff = targetBodyYaw - this.bodyRoot.rotation.y;
     bodyYawDiff = Math.atan2(Math.sin(bodyYawDiff), Math.cos(bodyYawDiff)); // wrap to [-π,π]
