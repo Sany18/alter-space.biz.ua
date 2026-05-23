@@ -5,6 +5,7 @@ import { GlobalStateService } from "./services/global-state/global-state.service
 import { WsService } from "./services/ws/ws.service";
 import { mountMainMenu } from "./components/MainMenu/MainMenu";
 import { RemotePlayersService } from "./services/remote-players/remote-players.service";
+import { PhysicsAuthorityService } from "./services/physics-authority/physics-authority.service";
 import { AppConfig } from "./config";
 
 const gameScene = new World();
@@ -19,8 +20,12 @@ location1.init();
 const player = new Player(camera, scene);
 gameScene.addAction('player-control', player.control);
 
+PhysicsAuthorityService.init();
+PhysicsAuthorityService.registerPlayerBody(player.cannonBody);
+gameScene.addAction('physics-authority', () => PhysicsAuthorityService.update());
+
 // CSM automatically repositions shadow frusta based on the camera each frame
-gameScene.addAction('csm-update', () => {
+gameScene.addAction('direct-light', () => {
   location1.light.update();
 });
 
@@ -47,8 +52,10 @@ WsService.on('player_update', (msg: any) => {
 
 WsService.on('player_leave', (msg: any) => {
   RemotePlayersService.remove(msg.id);
+  PhysicsAuthorityService.onPlayerLeave(msg.id);
 });
 
+// Send player position and rotation to the server at a fixed rate
 setInterval(() => {
   const { x, y, z } = player.cannonBody.position;
   const q = player.cannonBody.quaternion;

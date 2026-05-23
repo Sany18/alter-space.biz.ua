@@ -12,6 +12,7 @@ import './Sidebar/Sidebar';
 import { getTexturePath } from '../../utils/three-utils';
 import { GlobalStateService } from '../../services/global-state/global-state.service';
 import { World } from '../../components/World/World';
+import { PhysicsAuthorityService } from '../../services/physics-authority/physics-authority.service';
 
 export class Location1 implements LocationInterface {
   isLocationAlive = true;
@@ -201,6 +202,7 @@ export class Location1 implements LocationInterface {
 
       this.light.csm.setupMaterial(box.mesh.material as THREE.Material);
       this.sceneObjects.push(box.mesh);
+      PhysicsAuthorityService.registerBody(box.mesh.userData.counter, box.cannonBody!);
     })}
 
   destroy() {

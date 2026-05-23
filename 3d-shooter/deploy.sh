@@ -21,6 +21,7 @@ rsync -av \
 
 # Deploy WS server source
 rsync -av \
+  --exclude=node_modules \
   server/ \
   root@${REMOTE_HOST}:/var/www/${DOMAIN}/3d-shooter-server
 

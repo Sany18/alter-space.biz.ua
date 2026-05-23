@@ -15,11 +15,17 @@ export interface PlayerUpdateState {
   rotation: { x: number; y: number; z: number; w: number };
 }
 
+export interface Vec3 { x: number; y: number; z: number; }
+export interface Quat { x: number; y: number; z: number; w: number; }
+
 export type WsIncomingMessage =
   | { type: 'init'; id: string }
   | { type: 'position_init'; state: PlayerPositionState }
   | { type: 'player_update'; id: string; state: PlayerUpdateState }
-  | { type: 'player_leave'; id: string };
+  | { type: 'player_leave'; id: string }
+  | { type: 'server_role'; serverId: string | null }
+  | { type: 'object_update'; id: number; ownerId: string; position: Vec3; quaternion: Quat; velocity: Vec3; angularVelocity: Vec3 }
+  | { type: 'object_release'; id: number };
 
 type MessageHandler<T extends WsIncomingMessage = WsIncomingMessage> = (msg: T) => void;
 

@@ -4,6 +4,7 @@ import * as ReactDOM from 'react-dom/client';
 import { GlobalStateService } from '../../../services/global-state/global-state.service';
 import { LocalStorageService } from '../../../services/localstorage/localstorage.service';
 import { PointerLockService } from '../../../services/pointer-lock/pointer-lock.service';
+import { WsService } from '../../../services/ws/ws.service';
 
 import './Sidebar.scss';
 
@@ -93,6 +94,16 @@ function Sidebar() {
           checked={globalState.thirdPerson ?? true}
           onChange={e => inputHandler({ thirdPerson: e.target.checked })} />
         Third Person
+      </label>
+
+      {/* Physics server role */}
+      <label htmlFor="physics-server">
+        <input
+          id="physics-server"
+          type="checkbox"
+          checked={globalState.isPhysicsServer ?? false}
+          onChange={e => { if (e.target.checked) WsService.send({ type: 'claim_server' }); }} />
+        Physics Server
       </label>
     </div>
   );
