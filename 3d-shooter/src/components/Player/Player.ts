@@ -14,7 +14,7 @@ const vector000 = new THREE.Vector3(0, 0, 0);
 export default class Player {
   readonly config = {
     jumpHeight: 40,
-    movemetSpeed: 35,
+    movementSpeed: 35,
     mass: 1,
     camera: {
       minAngle: THREE.MathUtils.degToRad(-89),
@@ -26,7 +26,7 @@ export default class Player {
     standHeight: 10,
     crouchHeight: 2.5,
     bodyWidth: 3,
-    bodyDepth: 2.5,
+    bodyDepth: 3,
     crouchingMovementSpeedMultiplier: 0.5,
   }
 
@@ -76,7 +76,7 @@ export default class Player {
     const vz = this.cannonBody?.velocity.z ?? 0;
     const xzSpeed = Math.sqrt(vx * vx + vz * vz) * 4;
     const velocityAngle = Math.atan2(vx, vz); // movement direction in world space
-    this._playerObject?.animate(delta, xzSpeed, this.eulerY.y, velocityAngle);
+    this._playerObject?.animate(delta, xzSpeed, this.eulerY.y, velocityAngle, !this.canJump);
 
     if (document.pointerLockElement) {
       this.applyCrouch(this.crouch);
@@ -89,7 +89,7 @@ export default class Player {
       this.movementDirection.z = +this.moveForward - +this.moveBackward;
       this.movementDirection.x = +this.moveLeft - +this.moveRight;
 
-      const speed = this.config.movemetSpeed * (this.crouch ? this.config.crouchingMovementSpeedMultiplier : 1);
+      const speed = this.config.movementSpeed * (this.crouch ? this.config.crouchingMovementSpeedMultiplier : 1);
       let cameraDirection = this.convertXYZtoXZ(this.camera.getWorldDirection(vector000))
         .multiplyScalar(speed);
 

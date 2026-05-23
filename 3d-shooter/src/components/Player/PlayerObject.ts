@@ -19,6 +19,7 @@ export class PlayerObject extends AbstractObject {
   // ── Walk animation state ─────────────────────────────────────────────────────
   private _animPhase = 0;
   private _walkBlend = 0;
+  private _jumpBlend = 0;
 
   // spine chain
   hips!: THREE.Group;
@@ -262,12 +263,16 @@ export class PlayerObject extends AbstractObject {
   //    ±π    = moving backward
   //    ±π/2  = strafing left / right
 
-  animate(delta: number, xzSpeed: number, eulerYaw: number, velocityAngle: number): void {
+  animate(delta: number, xzSpeed: number, eulerYaw: number, velocityAngle: number, isJumping = false): void {
     const isMoving = xzSpeed > 0.5;
 
     // Exponential blend towards 1 (walking) or 0 (idle)
     const blendRate = isMoving ? 12 : 5;
     this._walkBlend += (+(isMoving) - this._walkBlend) * (1 - Math.exp(-blendRate * delta));
+
+    // Exponential blend towards 1 (in air) or 0 (on ground)
+    const jumpBlendRate = isJumping ? 14 : 7;
+    this._jumpBlend += (+(isJumping) - this._jumpBlend) * (1 - Math.exp(-jumpBlendRate * delta));
 
     // Camera-relative movement angle.
     // velocityAngle = π when moving forward (camera faces -Z → atan2(0,-1) = π),
@@ -282,31 +287,32 @@ export class PlayerObject extends AbstractObject {
       this._animPhase += delta * (4.5 + xzSpeed * 0.05) * phaseDir;
     }
 
-    const t  = this._animPhase;
-    const b  = this._walkBlend;
+    const t   = this._animPhase;
+    const b   = this._walkBlend;
+    const jb  = this._jumpBlend;
     const lr  = 1 - Math.exp(-20 * delta); // fast limb lerp
     const lrS = 1 - Math.exp(-8 * delta);  // slower body-turn lerp
 
-    // ── Leg swing (opposite phase) ──────────────────────────────────────────
+    // ── Leg swing: blend walk ↔ jump tuck ───────────────────────────────────
+    //  Jump pose: thighs forward (-0.35 rad), knees bent up (0.8 rad)
     const thighSwing = 0.55; // ±~31°
-    lerp_to(this.leftHipPivot,  'rx',  Math.sin(t) * thighSwing * b, lr);
-    lerp_to(this.rightHipPivot, 'rx', -Math.sin(t) * thighSwing * b, lr);
+    const kneeBend   = 0.6;  // ~34°
+    lerp_to(this.leftHipPivot,  'rx', THREE.MathUtils.lerp( Math.sin(t) * thighSwing * b, -0.35, jb), lr);
+    lerp_to(this.rightHipPivot, 'rx', THREE.MathUtils.lerp(-Math.sin(t) * thighSwing * b, -0.35, jb), lr);
+    lerp_to(this.leftKneePivot,  'rx', THREE.MathUtils.lerp(Math.max(0,  Math.sin(t + Math.PI * 0.5)) * kneeBend * b, 0.8, jb), lr);
+    lerp_to(this.rightKneePivot, 'rx', THREE.MathUtils.lerp(Math.max(0, -Math.sin(t + Math.PI * 0.5)) * kneeBend * b, 0.8, jb), lr);
 
-    // ── Knee bend (only bends on the backstroke, never negative) ────────────
-    const kneeBend = 0.6; // ~34°
-    lerp_to(this.leftKneePivot,  'rx', Math.max(0,  Math.sin(t + Math.PI * 0.5)) * kneeBend * b, lr);
-    lerp_to(this.rightKneePivot, 'rx', Math.max(0, -Math.sin(t + Math.PI * 0.5)) * kneeBend * b, lr);
-
-    // ── Arm swing (cross: left arm swings with right leg) ───────────────────
+    // ── Arm swing: blend walk ↔ jump raise ──────────────────────────────────
+    //  Jump pose: both arms raised forward (-0.5 rad)
     const armSwing = 0.4; // ~23°
-    lerp_to(this.leftShoulderPivot,  'rx', -Math.sin(t) * armSwing * b, lr);
-    lerp_to(this.rightShoulderPivot, 'rx',  Math.sin(t) * armSwing * b, lr);
+    lerp_to(this.leftShoulderPivot,  'rx', THREE.MathUtils.lerp(-Math.sin(t) * armSwing * b, -0.5, jb), lr);
+    lerp_to(this.rightShoulderPivot, 'rx', THREE.MathUtils.lerp( Math.sin(t) * armSwing * b, -0.5, jb), lr);
 
-    // ── Hip bob (twice per step cycle, always upward) ───────────────────────
-    lerp_to(this.hips, 'y', Math.abs(Math.sin(t)) * 0.15 * b, lr);
+    // ── Hip bob (suppressed in the air) ─────────────────────────────────────
+    lerp_to(this.hips, 'y', Math.abs(Math.sin(t)) * 0.15 * b * (1 - jb), lr);
 
-    // ── Slight forward lean while walking ───────────────────────────────────
-    lerp_to(this.spine, 'rx', -0.05 * b, lr);
+    // ── Spine: forward lean (walk) → slight backward lean (jump) ────────────
+    lerp_to(this.spine, 'rx', THREE.MathUtils.lerp(-0.05 * b, 0.08, jb), lr);
 
     // ── Lower-body yaw: rotate for strafing only ────────────────────────────
     //  Using the sin component of camRel means:
