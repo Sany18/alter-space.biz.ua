@@ -1,7 +1,25 @@
 import { LocalStorageService } from '../localstorage/localstorage.service';
 
+export interface PlayerPositionState {
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number };
+  camera: {
+    eulerX: { x: number; y: number; z: number; order: string };
+    eulerY: { x: number; y: number; z: number; order: string };
+    position: { x: number; y: number; z: number };
+  };
+}
+
+export interface PlayerUpdateState {
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number };
+}
+
 export type WsIncomingMessage =
-  | { type: 'init'; id: string };
+  | { type: 'init'; id: string }
+  | { type: 'position_init'; state: PlayerPositionState }
+  | { type: 'player_update'; id: string; state: PlayerUpdateState }
+  | { type: 'player_leave'; id: string };
 
 type MessageHandler<T extends WsIncomingMessage = WsIncomingMessage> = (msg: T) => void;
 

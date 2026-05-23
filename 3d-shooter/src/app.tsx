@@ -3,7 +3,9 @@ import { World } from "./components/World/World";
 import { Location1 } from "./scenes/Location-1/Location-1";
 import { GlobalStateService } from "./services/global-state/global-state.service";
 import { WsService } from "./services/ws/ws.service";
-import { mountMainMenu, unmountMainMenu } from "./components/MainMenu/MainMenu";
+import { mountMainMenu } from "./components/MainMenu/MainMenu";
+import { RemotePlayersService } from "./services/remote-players/remote-players.service";
+import { AppConfig } from "./config";
 
 const gameScene = new World();
 gameScene.init();
@@ -22,9 +24,6 @@ gameScene.addAction('csm-update', () => {
   location1.light.update();
 });
 
-// load player position and rotation
-player.loadPosition();
-
 // save player position and rotation
 window.addEventListener('beforeunload', () => {
   player.savePosition();
@@ -38,6 +37,29 @@ GlobalStateService.set('camera', camera);
 mountMainMenu();
 WsService.connect();
 
+RemotePlayersService.init(scene);
+
+WsService.on('player_update', (msg: any) => {
+  if (msg.id !== WsService.clientId) {
+    RemotePlayersService.update(msg.id, msg.state);
+  }
+});
+
+WsService.on('player_leave', (msg: any) => {
+  RemotePlayersService.remove(msg.id);
+});
+
+setInterval(() => {
+  const { x, y, z } = player.cannonBody.position;
+  const q = player.cannonBody.quaternion;
+  WsService.send({
+    type: 'player_update',
+    state: { position: { x, y, z }, rotation: { x: q.x, y: q.y, z: q.z, w: q.w } },
+  });
+}, 1000 / AppConfig.playerUpdateRate);
+
+setInterval(() => RemotePlayersService.cleanup(), 1000);
+
 function App() {
   return <></>
 }
@@ -46,11 +68,6 @@ export default App;
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    gameScene.destroy();
-    location1.destroy();
-    player.removeEventListeners();
-    document.getElementById('side-menu')?.remove();
-    unmountMainMenu();
-    WsService.disconnect();
+    window.location.reload();
   });
 }

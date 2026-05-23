@@ -5,9 +5,9 @@ import { Scene } from '../../types/extended-threejs-types/scene.type';
 
 import { Crosshair } from './Crosshair';
 import { PlayerObject } from './PlayerObject';
-import { LocalStorageService } from '../../services/localstorage/localstorage.service';
 import { GlobalStateService } from '../../services/global-state/global-state.service';
 import { PointerLockService } from '../../services/pointer-lock/pointer-lock.service';
+import { WsService } from '../../services/ws/ws.service';
 
 const vector000 = new THREE.Vector3(0, 0, 0);
 
@@ -141,27 +141,27 @@ export default class Player {
   }
 
   savePosition = () => {
-    LocalStorageService.set('player-position', {
-      position: this.cannonBody.position,
-      rotation: this.cannonBody.quaternion,
-      camera: {
-        eulerX: this.eulerX,
-        eulerY: this.eulerY,
-        position: this.camera.position,
-      }
+    WsService.send({
+      type: 'save_position',
+      state: {
+        position: this.cannonBody.position,
+        rotation: this.cannonBody.quaternion,
+        camera: {
+          eulerX: this.eulerX,
+          eulerY: this.eulerY,
+          position: this.camera.position,
+        },
+      },
     });
   }
 
-  loadPosition = () => {
-    const playerPosition = LocalStorageService.get('player-position');
-    if (playerPosition) {
-      this.cannonBody.position.copy(playerPosition.position);
-      this.cannonBody.quaternion.copy(playerPosition.rotation);
-      this.eulerX.copy(playerPosition.camera.eulerX);
-      this.eulerY.copy(playerPosition.camera.eulerY);
-      this.camera.quaternion.setFromEuler(this.eulerX);
-      this.camera.position.copy(playerPosition.camera.position);
-    }
+  private applyPosition = (state: { position: any; rotation: any; camera: any }) => {
+    this.cannonBody.position.copy(state.position);
+    this.cannonBody.quaternion.copy(state.rotation);
+    this.eulerX.copy(state.camera.eulerX);
+    this.eulerY.copy(state.camera.eulerY);
+    this.camera.quaternion.setFromEuler(this.eulerX);
+    this.camera.position.copy(state.camera.position);
   }
 
   resetPosition = () => {
@@ -186,6 +186,7 @@ export default class Player {
     window.addEventListener('click', this.playerShotHandler, false);
     this.cannonBody.addEventListener('collide', this.cannonBodyCollide);
     GlobalStateService.stateChanged.addEventListener('stateChanged', this.onStateChanged);
+    WsService.on('position_init', (msg: any) => this.applyPosition(msg.state));
   }
 
   removeEventListeners = () => {
@@ -196,6 +197,7 @@ export default class Player {
     window.removeEventListener('click', this.playerShotHandler, false);
     this.cannonBody.removeEventListener('collide', this.cannonBodyCollide);
     GlobalStateService.stateChanged.removeEventListener('stateChanged', this.onStateChanged);
+    WsService.off('position_init');
   }
 
   private playerShotHandler = () => {

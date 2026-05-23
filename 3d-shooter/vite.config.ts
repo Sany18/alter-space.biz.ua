@@ -23,5 +23,14 @@ export default defineConfig(({ mode }) => {
       __APP_DOMAIN__: JSON.stringify(domain),
       __APP_WS_URL__: JSON.stringify(wsUrl),
     },
+    build: {
+      rollupOptions: {
+        output: {
+          entryFileNames: 'assets/[name].js',
+          chunkFileNames: 'assets/[name].js',
+          assetFileNames: 'assets/[name].[ext]',
+        },
+      },
+    },
   }
 });
