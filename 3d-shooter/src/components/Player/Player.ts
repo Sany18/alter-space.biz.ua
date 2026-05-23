@@ -35,6 +35,8 @@ export default class Player {
   private _playerObject?: PlayerObject;
   private _lastFrameTime = performance.now();
   private _lastVelocityAngle = 0;
+  private _lastBodyX = 0;
+  private _lastBodyZ = 0;
 
   /*get*/
   moveForward = false;
@@ -76,9 +78,15 @@ export default class Player {
     // Physics velocity alone is unreliable: moving boxes give velocity without input,
     // and wall collisions zero out velocity while keys are still held.
     const anyKeyPressed = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
-    const vx = this.cannonBody?.velocity.x ?? 0;
-    const vz = this.cannonBody?.velocity.z ?? 0;
-    const rawSpeed = Math.sqrt(vx * vx + vz * vz) * 4;
+
+    // Position-delta speed: measures how far the body actually moved (immune to velocity overrides + wall blocks)
+    const bx = this.cannonBody?.position.x ?? 0;
+    const bz = this.cannonBody?.position.z ?? 0;
+    const dx = bx - this._lastBodyX;
+    const dz = bz - this._lastBodyZ;
+    this._lastBodyX = bx;
+    this._lastBodyZ = bz;
+    const actualSpeed = (Math.sqrt(dx * dx + dz * dz) / delta) * 4; // *4 to match xzSpeed scale (~140 at full walk)
 
     let xzSpeed: number;
     let velocityAngle: number;
@@ -91,16 +99,17 @@ export default class Player {
       const strafe = +this.moveLeft     - +this.moveRight;
       const dirX   = camFwdX * fwd + camFwdZ * strafe;
       const dirZ   = camFwdZ * fwd - camFwdX * strafe;
-      // Ensure animation plays even when blocked; rawSpeed drives cycle rate when unblocked
+      // Ensure animation plays even when blocked by a wall (blend activates on keypress);
+      // actual cycle rate is driven by actualSpeed (position-delta) in animate()
       const speed  = config.movementSpeed * (this.crouch ? config.crouchingMovementSpeedMultiplier : 1);
-      xzSpeed       = Math.max(rawSpeed, speed);
+      xzSpeed       = speed;
       velocityAngle = Math.atan2(dirX, dirZ);
       this._lastVelocityAngle = velocityAngle; // cache for blend-out
     } else {
       xzSpeed       = 0;
       velocityAngle = this._lastVelocityAngle; // keep last clean angle during walk blend-out
     }
-    this._playerObject?.animate(delta, xzSpeed, this.eulerY.y, velocityAngle, !this.canJump, this.crouch);
+    this._playerObject?.animate(delta, xzSpeed, actualSpeed, this.eulerY.y, velocityAngle, !this.canJump, this.crouch);
 
     if (document.pointerLockElement) {
       this.applyCrouch(this.crouch);
@@ -117,15 +126,13 @@ export default class Player {
       let cameraDirection = this.convertXYZtoXZ(this.camera.getWorldDirection(vector000))
         .multiplyScalar(speed);
 
-      // Keyboard movement
-      if (this.moveForward || this.moveBackward) {
-        this.cannonBody.velocity.x += cameraDirection.x * this.movementDirection.z;
-        this.cannonBody.velocity.z += cameraDirection.z * this.movementDirection.z;
-      }
-
-      if (this.moveLeft || this.moveRight) {
-        this.cannonBody.velocity.x += cameraDirection.z * this.movementDirection.x;
-        this.cannonBody.velocity.z += -cameraDirection.x * this.movementDirection.x;
+      // Combined, normalized movement — prevents diagonal speed boost (would be ×√2 otherwise)
+      const inputVelX = cameraDirection.x * this.movementDirection.z + cameraDirection.z * this.movementDirection.x;
+      const inputVelZ = cameraDirection.z * this.movementDirection.z - cameraDirection.x * this.movementDirection.x;
+      const inputLen  = Math.sqrt(inputVelX * inputVelX + inputVelZ * inputVelZ);
+      if (inputLen > 0) {
+        this.cannonBody.velocity.x += inputVelX * (speed / inputLen);
+        this.cannonBody.velocity.z += inputVelZ * (speed / inputLen);
       }
 
       if (this.jump && this.canJump) {

@@ -24,8 +24,8 @@ const CROUCH_BLEND_OUT = 8;
 const BODY_TURN_LERP_SPEED = 8;
 
 const WALK_SPEED_THRESHOLD = 0.5;   // xzSpeed below this = idle
-const WALK_PHASE_BASE      = 4.5;   // base phase advance rate
-const WALK_PHASE_SCALE     = 0.05;  // extra rate per unit of speed
+const WALK_PHASE_BASE      = 6;     // base phase advance rate
+const WALK_PHASE_SCALE     = 0.12;  // velocity-driven rate (xzSpeed≈140 → ~23 rad/s = matched stride)
 
 // Walk pose amplitudes
 const THIGH_SWING   = 0.55;  // ±~31°
@@ -56,7 +56,7 @@ const CROUCH_SPINE = 0.35; // forward lean when crouching
 const CROUCH_HIP_PITCH = 0.25; // hip pitch rock when crouching
 
 // Body yaw
-const MAX_BODY_ROT = 1.0;  // ~57° max strafe twist
+const MAX_BODY_ROT = Math.PI / 2;  // 90° — body fully faces strafe direction
 
 export class PlayerObject extends AbstractObject {
   config = { showTrigger: true };
@@ -314,7 +314,7 @@ export class PlayerObject extends AbstractObject {
   //    ±π    = moving backward
   //    ±π/2  = strafing left / right
 
-  animate(delta: number, xzSpeed: number, eulerYaw: number, velocityAngle: number, isJumping = false, isCrouching = false): void {
+  animate(delta: number, xzSpeed: number, rawSpeed: number, eulerYaw: number, velocityAngle: number, isJumping = false, isCrouching = false): void {
     const isMoving = xzSpeed > WALK_SPEED_THRESHOLD;
 
     // Walk blend uses exponential smoothing — filters out physics micro-spikes
@@ -334,9 +334,10 @@ export class PlayerObject extends AbstractObject {
     camRel = Math.atan2(Math.sin(camRel), Math.cos(camRel)); // wrap to [-π, π]
 
     // Phase only advances on the ground — prevents sin(t) oscillation mid-air.
+    // Uses rawSpeed (actual physics velocity) so the cycle slows when blocked by a wall.
     if (isMoving && !isJumping) {
       const phaseDir = Math.cos(camRel) >= 0 ? 1 : -1;
-      this._animPhase += delta * (WALK_PHASE_BASE + xzSpeed * WALK_PHASE_SCALE) * phaseDir;
+      this._animPhase += delta * (WALK_PHASE_BASE + rawSpeed * WALK_PHASE_SCALE) * phaseDir;
     }
 
     const t = this._animPhase;
@@ -382,14 +383,21 @@ export class PlayerObject extends AbstractObject {
 
     // ── Lower-body yaw: rotate for strafing only ────────────────────────────
     // Strafe rotation only on the ground — suppressed in air to prevent waving.
+    // "Tent" mapping: front hemisphere (|camRel| ≤ π/2) → exact angle (45°→45°),
+    // back hemisphere folds back to 0 so backward walk has no body turn and
+    // the leg phase-reversal handles the direction instead.
     const strafeB = b > 0.2 ? b * (1 - jb) : 0;
-    const targetBodyYaw = Math.PI + Math.sin(camRel) * MAX_BODY_ROT * strafeB;
+    const absCamRel = Math.abs(camRel);
+    const bodyTurn  = absCamRel <= Math.PI / 2
+      ? camRel                                          // front: exact
+      : Math.sign(camRel) * (Math.PI - absCamRel);     // back: fold toward 0
+    const targetBodyYaw = Math.PI + bodyTurn * strafeB;
     let bodyYawDiff = targetBodyYaw - this.bodyRoot.rotation.y;
     bodyYawDiff = Math.atan2(Math.sin(bodyYawDiff), Math.cos(bodyYawDiff)); // wrap to [-π,π]
     this.bodyRoot.rotation.y += bodyYawDiff * lrS;
 
     // Spine counteracts half the body rotation — upper body stays aimed at camera
-    lerp_to(this.spine, 'ry', -Math.sin(camRel) * MAX_BODY_ROT * 0.5 * strafeB, lr);
+    lerp_to(this.spine, 'ry', -bodyTurn * 0.5 * strafeB, lr);
   }
 }
 
