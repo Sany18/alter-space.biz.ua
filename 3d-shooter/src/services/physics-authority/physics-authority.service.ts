@@ -15,7 +15,6 @@ interface ReceivedState {
 
 class PhysicsAuthorityServiceClass {
   private dynamicBodies = new Map<number, CANNON.Body>();
-  private playerBody: CANNON.Body | null = null;
 
   private serverId: string | null = null;
   /** objectOwners: object id → client id who is currently simulating it. Empty string = unowned (server's). */

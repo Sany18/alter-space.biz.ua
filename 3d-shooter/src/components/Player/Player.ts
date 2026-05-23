@@ -23,14 +23,17 @@ export default class Player {
       thirdPerson: true,
       thirdPersonPosition: [0, 7.5, 10],
     },
-    standHeight: 5,
+    standHeight: 10,
     crouchHeight: 2.5,
-    bodyWidth: 2.5,
+    bodyWidth: 3,
+    bodyDepth: 2.5,
     crouchingMovementSpeedMultiplier: 0.5,
   }
 
   mesh: any;
   cannonBody: CANNON.Body;
+  private _playerObject?: PlayerObject;
+  private _lastFrameTime = performance.now();
 
   /*get*/
   moveForward = false;
@@ -63,6 +66,18 @@ export default class Player {
   }
 
   control = () => {
+    // Frame delta — capped so a tab-switch spike doesn't break the animation
+    const now = performance.now();
+    const delta = Math.min((now - this._lastFrameTime) / 1000, 0.1);
+    this._lastFrameTime = now;
+
+    // Drive walk animation from actual XZ velocity (reads cannon physics state)
+    const vx = this.cannonBody?.velocity.x ?? 0;
+    const vz = this.cannonBody?.velocity.z ?? 0;
+    const xzSpeed = Math.sqrt(vx * vx + vz * vz) * 4;
+    const velocityAngle = Math.atan2(vx, vz); // movement direction in world space
+    this._playerObject?.animate(delta, xzSpeed, this.eulerY.y, velocityAngle);
+
     if (document.pointerLockElement) {
       this.applyCrouch(this.crouch);
 
@@ -99,7 +114,7 @@ export default class Player {
   private crouchingPreviousState = false;
   private applyCrouch(crouching: boolean) {
     if (crouching === this.crouchingPreviousState) return;
-    const { standHeight, crouchHeight, bodyWidth } = this.config;
+    const { standHeight, crouchHeight, bodyWidth, bodyDepth } = this.config;
     const heigthDiff = standHeight - crouchHeight; // 2.5
 
     // Swap Cannon body shape.
@@ -108,15 +123,15 @@ export default class Player {
     }
 
     if (crouching) {
-      this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth, crouchHeight, bodyWidth)));
+      this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth / 2, crouchHeight / 2, bodyDepth / 2)));
       this.cannonBody.position.y -= heigthDiff / 2; // keep feet at ground level
-      this.mesh.geometry.dispose();
-      this.mesh.geometry = new THREE.BoxGeometry(bodyWidth * 2, crouchHeight * 2, bodyWidth * 2);
+      const bodyRoot = this.mesh.getObjectByName('body_root') as THREE.Group;
+      if (bodyRoot) bodyRoot.scale.y = crouchHeight / standHeight;
     } else {
-      this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth, standHeight, bodyWidth)));
+      this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth / 2, standHeight / 2, bodyDepth / 2)));
       this.cannonBody.position.y += heigthDiff / 2;
-      this.mesh.geometry.dispose();
-      this.mesh.geometry = new THREE.BoxGeometry(bodyWidth * 2, standHeight * 2, bodyWidth * 2);
+      const bodyRoot = this.mesh.getObjectByName('body_root') as THREE.Group;
+      if (bodyRoot) bodyRoot.scale.y = 1;
     }
 
     // this.camera.position.y = this.config.camera.thirdPersonPosition[1] + this.cameraYOffset;
@@ -226,6 +241,7 @@ export default class Player {
 
     this.cannonBody = playerObject.cannonBody;
     this.mesh = playerObject.mesh;
+    this._playerObject = playerObject;
   }
 
   private convertXYZtoXZ = (vector: THREE.Vector3) => {

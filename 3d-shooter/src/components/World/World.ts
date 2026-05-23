@@ -153,6 +153,7 @@ export class World {
       color: 0x00ff00, // green
       scale: 1,
       onInit: (body, mesh, shape) => {
+        mesh.visible = GlobalStateService.state.cannonDebuggerEnabled;
         GlobalStateService.stateChanged.addEventListener('stateChanged', () => {
           mesh.visible = GlobalStateService.state.cannonDebuggerEnabled;
         });
