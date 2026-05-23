@@ -4,36 +4,37 @@ import * as CANNON from 'cannon-es';
 import { Scene } from '../../types/extended-threejs-types/scene.type';
 
 import { Crosshair } from './Crosshair';
+import { WsService } from '../../services/ws/ws.service';
 import { PlayerObject } from './PlayerObject';
 import { GlobalStateService } from '../../services/global-state/global-state.service';
 import { PointerLockService } from '../../services/pointer-lock/pointer-lock.service';
-import { WsService } from '../../services/ws/ws.service';
 
 const vector000 = new THREE.Vector3(0, 0, 0);
 
-export default class Player {
-  readonly config = {
-    jumpHeight: 40,
-    movementSpeed: 35,
-    mass: 1,
-    camera: {
-      minAngle: THREE.MathUtils.degToRad(-89),
-      maxAngle: THREE.MathUtils.degToRad(89),
-      position: [0, 5, -2.6],
-      thirdPerson: true,
-      thirdPersonPosition: [0, 7.5, 10],
-    },
-    standHeight: 10,
-    crouchHeight: 2.5,
-    bodyWidth: 3,
-    bodyDepth: 3,
-    crouchingMovementSpeedMultiplier: 0.5,
-  }
+export const config = {
+  jumpHeight: 40,
+  movementSpeed: 35,
+  mass: 1,
+  camera: {
+    minAngle: THREE.MathUtils.degToRad(-89),
+    maxAngle: THREE.MathUtils.degToRad(89),
+    position: [0, 5, -2.6],
+    thirdPerson: true,
+    thirdPersonPosition: [0, 7.5, 10],
+  },
+  standHeight: 10,
+  crouchHeight: 6,
+  bodyWidth: 3,
+  bodyDepth: 3,
+  crouchingMovementSpeedMultiplier: 0.5,
+}
 
+export default class Player {
   mesh: any;
   cannonBody: CANNON.Body;
   private _playerObject?: PlayerObject;
   private _lastFrameTime = performance.now();
+  private _lastVelocityAngle = 0;
 
   /*get*/
   moveForward = false;
@@ -71,12 +72,35 @@ export default class Player {
     const delta = Math.min((now - this._lastFrameTime) / 1000, 0.1);
     this._lastFrameTime = now;
 
-    // Drive walk animation from actual XZ velocity (reads cannon physics state)
+    // Drive walk animation from keyboard input + camera direction.
+    // Physics velocity alone is unreliable: moving boxes give velocity without input,
+    // and wall collisions zero out velocity while keys are still held.
+    const anyKeyPressed = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
     const vx = this.cannonBody?.velocity.x ?? 0;
     const vz = this.cannonBody?.velocity.z ?? 0;
-    const xzSpeed = Math.sqrt(vx * vx + vz * vz) * 4;
-    const velocityAngle = Math.atan2(vx, vz); // movement direction in world space
-    this._playerObject?.animate(delta, xzSpeed, this.eulerY.y, velocityAngle, !this.canJump);
+    const rawSpeed = Math.sqrt(vx * vx + vz * vz) * 4;
+
+    let xzSpeed: number;
+    let velocityAngle: number;
+    if (anyKeyPressed) {
+      // Compute intended direction from input + camera yaw (wall-collision-proof)
+      const yaw = this.eulerY.y;
+      const camFwdX = -Math.sin(yaw);
+      const camFwdZ = -Math.cos(yaw);
+      const fwd    = +this.moveForward  - +this.moveBackward;
+      const strafe = +this.moveLeft     - +this.moveRight;
+      const dirX   = camFwdX * fwd + camFwdZ * strafe;
+      const dirZ   = camFwdZ * fwd - camFwdX * strafe;
+      // Ensure animation plays even when blocked; rawSpeed drives cycle rate when unblocked
+      const speed  = config.movementSpeed * (this.crouch ? config.crouchingMovementSpeedMultiplier : 1);
+      xzSpeed       = Math.max(rawSpeed, speed);
+      velocityAngle = Math.atan2(dirX, dirZ);
+      this._lastVelocityAngle = velocityAngle; // cache for blend-out
+    } else {
+      xzSpeed       = 0;
+      velocityAngle = this._lastVelocityAngle; // keep last clean angle during walk blend-out
+    }
+    this._playerObject?.animate(delta, xzSpeed, this.eulerY.y, velocityAngle, !this.canJump, this.crouch);
 
     if (document.pointerLockElement) {
       this.applyCrouch(this.crouch);
@@ -89,7 +113,7 @@ export default class Player {
       this.movementDirection.z = +this.moveForward - +this.moveBackward;
       this.movementDirection.x = +this.moveLeft - +this.moveRight;
 
-      const speed = this.config.movementSpeed * (this.crouch ? this.config.crouchingMovementSpeedMultiplier : 1);
+      const speed = config.movementSpeed * (this.crouch ? config.crouchingMovementSpeedMultiplier : 1);
       let cameraDirection = this.convertXYZtoXZ(this.camera.getWorldDirection(vector000))
         .multiplyScalar(speed);
 
@@ -105,7 +129,7 @@ export default class Player {
       }
 
       if (this.jump && this.canJump) {
-        this.cannonBody.velocity.y = this.config.jumpHeight;
+        this.cannonBody.velocity.y = config.jumpHeight;
         this.canJump = false;
       }
     }
@@ -114,7 +138,7 @@ export default class Player {
   private crouchingPreviousState = false;
   private applyCrouch(crouching: boolean) {
     if (crouching === this.crouchingPreviousState) return;
-    const { standHeight, crouchHeight, bodyWidth, bodyDepth } = this.config;
+    const { standHeight, crouchHeight, bodyWidth, bodyDepth } = config;
     const heigthDiff = standHeight - crouchHeight; // 2.5
 
     // Swap Cannon body shape.
@@ -125,29 +149,25 @@ export default class Player {
     if (crouching) {
       this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth / 2, crouchHeight / 2, bodyDepth / 2)));
       this.cannonBody.position.y -= heigthDiff / 2; // keep feet at ground level
-      const bodyRoot = this.mesh.getObjectByName('body_root') as THREE.Group;
-      if (bodyRoot) bodyRoot.scale.y = crouchHeight / standHeight;
     } else {
       this.cannonBody.addShape(new CANNON.Box(new CANNON.Vec3(bodyWidth / 2, standHeight / 2, bodyDepth / 2)));
       this.cannonBody.position.y += heigthDiff / 2;
-      const bodyRoot = this.mesh.getObjectByName('body_root') as THREE.Group;
-      if (bodyRoot) bodyRoot.scale.y = 1;
     }
 
-    // this.camera.position.y = this.config.camera.thirdPersonPosition[1] + this.cameraYOffset;
+    // this.camera.position.y = config.camera.thirdPersonPosition[1] + this.cameraYOffset;
     this.crouchingPreviousState = crouching;
   }
 
   setThirdPerson = (enabled: boolean) => {
-    this.config.camera.thirdPerson = enabled;
+    config.camera.thirdPerson = enabled;
     if (enabled) {
-      const [x, y, z] = this.config.camera.thirdPersonPosition;
+      const [x, y, z] = config.camera.thirdPersonPosition;
       this.camera.position.x = x;
       this.camera.position.y = this.eulerX.x > 0 ? y : Math.sin(-this.eulerX.x) * 10 + y;
       this.camera.position.z = this.eulerX.x < 0 ? Math.cos(this.eulerX.x) * z : z;
     } else {
       // @ts-ignore
-      this.camera.position.set(...this.config.camera.position);
+      this.camera.position.set(...config.camera.position);
     }
   }
 
@@ -183,12 +203,12 @@ export default class Player {
     this.cannonBody.position.set(0, 20, 50);
     this.eulerX.set(0, 0, 0);
     this.eulerY.set(0, 0, 0);
-    if (this.config.camera.thirdPerson) {
+    if (config.camera.thirdPerson) {
       // @ts-ignore
-      this.camera.position.set(...this.config.camera.thirdPersonPosition);
+      this.camera.position.set(...config.camera.thirdPersonPosition);
     } else {
       // @ts-ignore
-      this.camera.position.set(...this.config.camera.position);
+      this.camera.position.set(...config.camera.position);
     }
     this.camera.quaternion.setFromEuler(this.eulerX);
   }
@@ -228,18 +248,19 @@ export default class Player {
 
   private createPlayerModel = () => {
     const crosshair = new Crosshair(this.scene);
-    const playerObject = new PlayerObject(this.scene);
+    const playerObject = new PlayerObject(this.scene, config);
 
     this.camera.add(crosshair.mesh);
 
     // @ts-ignore
-    if (!this.config.camera.thirdPerson) this.camera.position.set(...this.config.camera.position);
+    if (!config.camera.thirdPerson) this.camera.position.set(...config.camera.position);
     // @ts-ignore
-    if (this.config.camera.thirdPerson) this.camera.position.set(...this.config.camera.thirdPersonPosition);
+    if (config.camera.thirdPerson) this.camera.position.set(...config.camera.thirdPersonPosition);
     playerObject.mesh.add(this.camera);
     playerObject.addToScene({ static: false });
 
     this.cannonBody = playerObject.cannonBody;
+    this.cannonBody.linearDamping = 0.99; // prevent physics micro-slide when idle
     this.mesh = playerObject.mesh;
     this._playerObject = playerObject;
   }
@@ -279,10 +300,10 @@ export default class Player {
 
     this.eulerY.y -= movementX * 0.002;
     this.eulerX.x -= movementY * 0.002;
-    this.eulerX.x = Math.max(this.config.camera.minAngle, Math.min(this.config.camera.maxAngle, this.eulerX.x));
+    this.eulerX.x = Math.max(config.camera.minAngle, Math.min(config.camera.maxAngle, this.eulerX.x));
 
-    if (this.config.camera.thirdPerson) {
-      const [x, y, z] = this.config.camera.thirdPersonPosition;
+    if (config.camera.thirdPerson) {
+      const [x, y, z] = config.camera.thirdPersonPosition;
       this.camera.position.y = this.eulerX.x > 0 ? y : Math.sin(-this.eulerX.x) * 10 + y; // Good
       this.camera.position.z = this.eulerX.x < 0 ? Math.cos(this.eulerX.x) * z : z; // ~ So so
     }
