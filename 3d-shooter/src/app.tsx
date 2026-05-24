@@ -61,21 +61,34 @@ WsService.on('player_update', (msg: any) => {
 });
 
 // Send player position and rotation to the server at a fixed rate.
-// When the tab is hidden, throttle to 1 update/s to save bandwidth.
+// When the tab is hidden, throttle to 1 update/s to save bandwidth —
+// unless the body was physically pushed (e.g. by another player), in which
+// case we broadcast at full rate until it comes to rest again.
+const PUSHED_THRESHOLD = 0.05; // units; ignores physics-damping micro-drift
 let lastPlayerUpdateTime = 0;
+let _lastSentX = player.cannonBody.position.x;
+let _lastSentY = player.cannonBody.position.y;
+let _lastSentZ = player.cannonBody.position.z;
+
 setInterval(() => {
-  // Unfocused tab skips updates. Only one per second.
-  const minInterval = document.hasFocus() ? 1000 / AppConfig.playerUpdateRate : 1000;
+  const { x, y, z } = player.cannonBody.position;
+  const focused = document.hasFocus();
+
+  // Unfocused tab throttles to 1 update/s — unless we were physically moved
+  const wasPushed = !focused &&
+    Math.abs(x - _lastSentX) + Math.abs(y - _lastSentY) + Math.abs(z - _lastSentZ) > PUSHED_THRESHOLD;
+  const minInterval = (focused || wasPushed) ? 1000 / AppConfig.playerUpdateRate : 1000;
   const now = Date.now();
   if (now - lastPlayerUpdateTime < minInterval) return;
   lastPlayerUpdateTime = now;
   // =====
 
-  const { x, y, z } = player.cannonBody.position;
+  _lastSentX = x; _lastSentY = y; _lastSentZ = z;
+
   const q = player.cannonBody.quaternion;
 
   WsService.sendRaw(
-    `pu,${f7(x)},${f7(y)},${f7(z)},${f7(q.x)},${f7(q.y)},${f7(q.z)},${f7(q.w)},${player.crouch ? 1 : 0},${f7(player.eulerX.x)}`
+    `pu,${f7(x)},${f7(y)},${f7(z)},${f7(q.x)},${f7(q.y)},${f7(q.z)},${f7(q.w)},${+player.crouch},${f7(player.eulerX.x)}`
   );
 }, 1000 / AppConfig.playerUpdateRate);
 

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 import { Scene } from '../../types/extended-threejs-types/scene.type';
 import { PlayerObject } from '../Player/PlayerObject';
 import { config } from '../Player/Player';
@@ -27,6 +28,8 @@ export class RemotePlayer {
   private _crouching = false;
   private _cameraPitch = 0;
 
+  private _cannonBody: CANNON.Body;
+
   // Snapshot interpolation state
   private _prev: Snapshot | null = null;
   private _target: Snapshot | null = null;
@@ -51,6 +54,13 @@ export class RemotePlayer {
     this._root.name = 'remote_player';
     this._root.add(this._playerObject.bodyRoot);
     scene.add(this._root);
+
+    // Kinematic body — tracks visual position so local player cannot walk through
+    const [bw, bh, bd] = config.body.size;
+    const shape = new CANNON.Box(new CANNON.Vec3(bw / 2, bh / 2, bd / 2));
+    this._cannonBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC });
+    this._cannonBody.addShape(shape);
+    if (scene.cannonWorld) scene.cannonWorld.addBody(this._cannonBody);
   }
 
   update(state: RemotePlayerState) {
@@ -122,11 +132,18 @@ export class RemotePlayer {
       this._root.quaternion.copy(this._targetQ);
     }
 
+    // Sync kinematic cannon body to the interpolated visual position
+    const p = this._root.position;
+    const q = this._root.quaternion;
+    this._cannonBody.position.set(p.x, p.y, p.z);
+    this._cannonBody.quaternion.set(q.x, q.y, q.z, q.w);
+
     this._playerObject.animate(dt, this._currentSpeed, this._currentSpeed, this._eulerYaw, this._lastVelocityAngle, false, this._crouching);
     this._playerObject.headPivot.rotation.x = -this._cameraPitch;
   }
 
   destroy() {
     this.scene.remove(this._root);
+    if (this.scene.cannonWorld) this.scene.cannonWorld.removeBody(this._cannonBody);
   }
 }
