@@ -37,6 +37,7 @@ export default class Player {
   private _lastVelocityAngle = 0;
   private _lastBodyX = 0;
   private _lastBodyZ = 0;
+  private _headCamPos = new THREE.Vector3();
 
   /*get*/
   moveForward = false;
@@ -110,6 +111,13 @@ export default class Player {
       velocityAngle = this._lastVelocityAngle; // keep last clean angle during walk blend-out
     }
     this._playerObject?.animate(delta, xzSpeed, actualSpeed, this.eulerY.y, velocityAngle, !this.canJump, this.crouch);
+
+    // Bind first-person camera to head — tracks animation bob
+    if (!config.camera.thirdPerson && this._playerObject) {
+      this._playerObject.headPivot.getWorldPosition(this._headCamPos);
+      this.mesh.worldToLocal(this._headCamPos);
+      this.camera.position.set(this._headCamPos.x, this._headCamPos.y + 0.85, this._headCamPos.z - 0.5);
+    }
 
     if (document.pointerLockElement) {
       this.applyCrouch(this.crouch);

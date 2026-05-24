@@ -284,7 +284,15 @@ export class PlayerObject extends AbstractObject {
     headMesh.name = 'head';
     headMesh.position.y = 0.65;
 
-    const hairMesh = this.box(1.25, 0.45, 1.25, C_HAIR);
+    // Hair: open-bottom box — visible from top and sides, hollow from below.
+    // BoxGeometry index order: +x, -x, +y, -y(bottom), +z, -z (6 indices per face).
+    // Removing indices [18..23] drops the bottom (-y) face entirely.
+    const hairGeo = new THREE.BoxGeometry(1.25, 0.45, 1.25);
+    const origIdx = Array.from((hairGeo.index as THREE.BufferAttribute).array as Uint16Array);
+    hairGeo.setIndex([...origIdx.slice(0, 18), ...origIdx.slice(24)]);
+    const hairMesh = new THREE.Mesh(hairGeo, new THREE.MeshLambertMaterial({ color: C_HAIR }));
+    hairMesh.castShadow = true;
+    hairMesh.receiveShadow = true;
     hairMesh.name = 'hair';
     hairMesh.position.set(0, 1.52, -0.08); // slightly back
 
