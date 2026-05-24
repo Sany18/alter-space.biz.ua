@@ -43,32 +43,44 @@ mountMainMenu();
 WsService.connect();
 
 RemotePlayersService.init(scene);
-gameScene.addAction('remote-players-tick', () => RemotePlayersService.tick());
 
 WsService.on('player_update', (msg: any) => {
   const isSelf = msg.id === WsService.socketId;
-  console.log(`[player_update] from=${msg.id} | mySocket=${WsService.socketId} | isSelf=${isSelf}`);
+
   if (!isSelf) {
-    RemotePlayersService.update(msg.id, msg.state);
+    if (msg.state?.deleted) {
+      RemotePlayersService.remove(msg.id);
+      PhysicsAuthorityService.onPlayerLeave(msg.id);
+    } else {
+      RemotePlayersService.update(msg.id, msg.state);
+    }
   }
 });
 
-WsService.on('player_leave', (msg: any) => {
-  RemotePlayersService.remove(msg.id);
-  PhysicsAuthorityService.onPlayerLeave(msg.id);
-});
-
-// Send player position and rotation to the server at a fixed rate
+// Send player position and rotation to the server at a fixed rate.
+// When the tab is hidden, throttle to 1 update/s to save bandwidth.
+let lastPlayerUpdateTime = 0;
 setInterval(() => {
+  // Unfocused tab skips updates. Only one per second.
+  const minInterval = document.hidden ? 1000 : 1000 / AppConfig.playerUpdateRate;
+  const now = Date.now();
+  if (now - lastPlayerUpdateTime < minInterval) return;
+  lastPlayerUpdateTime = now;
+  // =====
+
   const { x, y, z } = player.cannonBody.position;
   const q = player.cannonBody.quaternion;
+
   WsService.send({
     type: 'player_update',
-    state: { position: { x, y, z }, rotation: { x: q.x, y: q.y, z: q.z, w: q.w }, crouching: player.crouch, cameraPitch: player.eulerX.x },
+    state: {
+      position: { x, y, z },
+      rotation: { x: q.x, y: q.y, z: q.z, w: q.w },
+      crouching: player.crouch,
+      cameraPitch: player.eulerX.x
+    },
   });
 }, 1000 / AppConfig.playerUpdateRate);
-
-setInterval(() => RemotePlayersService.cleanup(), 1000);
 
 function App() {
   return <></>

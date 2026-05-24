@@ -156,10 +156,10 @@ class PhysicsAuthorityServiceClass {
       // Track when the object comes to rest
       if (speed < SLEEP_VELOCITY_THRESHOLD) {
         if (!this.stoppedSince.has(id)) this.stoppedSince.set(id, now);
-        // Non-server owner releases ownership once object has stopped
-        if (!this.isServer && this.objectOwners.get(id) === WsService.socketId) {
-          const stoppedFor = now - this.stoppedSince.get(id)!;
-          if (stoppedFor > SLEEP_AFTER_MS) {
+        const stoppedFor = now - this.stoppedSince.get(id)!;
+        if (stoppedFor > SLEEP_AFTER_MS) {
+          if (!this.isServer && this.objectOwners.get(id) === WsService.socketId) {
+            // Non-server owner releases ownership once object has stopped
             // Save current state so the body stays put while waiting for server updates
             this.receivedStates.set(id, {
               position: { x: body.position.x, y: body.position.y, z: body.position.z },
@@ -169,8 +169,9 @@ class PhysicsAuthorityServiceClass {
             });
             this.objectOwners.delete(id);
             WsService.send({ type: 'object_release', id });
-            continue;
           }
+          // Both server and non-server skip broadcasting idle objects
+          continue;
         }
       } else {
         this.stoppedSince.delete(id);

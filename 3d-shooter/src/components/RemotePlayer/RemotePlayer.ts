@@ -4,19 +4,17 @@ import { PlayerObject } from '../Player/PlayerObject';
 import { config } from '../Player/Player';
 
 export interface RemotePlayerState {
-  position: { x: number; y: number; z: number };
-  rotation: { x: number; y: number; z: number; w: number };
+  position?: { x: number; y: number; z: number };
+  rotation?: { x: number; y: number; z: number; w: number };
   crouching?: boolean;
   cameraPitch?: number;
+  deleted?: boolean;
 }
 
 export class RemotePlayer {
   private readonly _playerObject: PlayerObject;
   private readonly _root: THREE.Group;
-  lastSeen: number = Date.now();
-
   private _lastUpdateTime = performance.now();
-  private _lastTickTime = performance.now();
   private _lastX = NaN;
   private _lastZ = NaN;
   private _lastVelocityAngle = 0;
@@ -70,7 +68,6 @@ export class RemotePlayer {
     this._lastX = state.position.x;
     this._lastZ = state.position.z;
 
-    // Cache yaw and crouch state — consumed every frame by tick()
     this._tmpQ.set(state.rotation.x, state.rotation.y, state.rotation.z, state.rotation.w);
     this._eulerYaw = this._tmpE.setFromQuaternion(this._tmpQ, 'YXZ').y;
     this._crouching = !!state.crouching;
@@ -79,14 +76,6 @@ export class RemotePlayer {
     this._root.position.set(state.position.x, state.position.y, state.position.z);
     this._root.quaternion.copy(this._tmpQ);
 
-    this.lastSeen = Date.now();
-  }
-
-  /** Called every render frame — advances the animation at full FPS. */
-  tick() {
-    const now = performance.now();
-    const delta = Math.min((now - this._lastTickTime) / 1000, 0.1);
-    this._lastTickTime = now;
     this._playerObject.animate(delta, this._currentSpeed, this._currentSpeed, this._eulerYaw, this._lastVelocityAngle, false, this._crouching);
     this._playerObject.headPivot.rotation.x = -this._cameraPitch;
   }

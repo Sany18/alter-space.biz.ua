@@ -55,9 +55,6 @@ const CROUCH_HIP   = 2.0;  // hips dropped
 const CROUCH_SPINE = 0.35; // forward lean when crouching
 const CROUCH_HIP_PITCH = 0.25; // hip pitch rock when crouching
 
-// Body yaw
-const MAX_BODY_ROT = Math.PI / 2;  // 90° — body fully faces strafe direction
-
 export class PlayerObject extends AbstractObject {
   config = { showTrigger: true };
 

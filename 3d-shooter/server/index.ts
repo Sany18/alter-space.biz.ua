@@ -32,6 +32,7 @@ interface ObjectState {
 
 const playerStates = new Map<string, PlayerState>();
 const onlinePlayers = new Map<string, OnlinePlayerState>();
+const playerLastSeen = new Map<string, number>();
 const objectStates = new Map<number, ObjectState>();
 
 let serverId: string | null = null;
@@ -47,7 +48,7 @@ const server = Bun.serve<ClientData>({
 
   websocket: {
     open(ws) {
-      console.log(`[WS] Client connected:    ${ws.data.id} (awaiting hello)`);
+      console.log(`[WS] Client connected: ${ws.data.id} (awaiting hello)`);
     },
 
     message(ws, raw) {
@@ -93,14 +94,38 @@ const server = Bun.serve<ClientData>({
         return;
       }
 
-      if (msg.type === 'save_position' && msg.state) {
+      if (msg.type === 'leave_server' && msg.state && ws.data.identified) {
         playerStates.set(ws.data.clientId, msg.state as PlayerState);
         console.log(`[WS] Saved position for:  ${ws.data.clientId}`);
+
+        onlinePlayers.delete(ws.data.id);
+        playerLastSeen.delete(ws.data.id);
+
+        const idx = connectedClients.indexOf(ws.data.id);
+        if (idx !== -1) connectedClients.splice(idx, 1);
+
+        if (serverId === ws.data.id) {
+          serverId = connectedClients[0] ?? null;
+          console.log(`[WS] Server role transferred: ${serverId ?? 'none'}`);
+          server.publish('world', JSON.stringify({ type: 'server_role', serverId }));
+        }
+
+        if (serverId) {
+          for (const [objId, state] of objectStates) {
+            if (state.ownerId === ws.data.id) {
+              state.ownerId = serverId;
+              server.publish('world', JSON.stringify({ type: 'object_update', id: objId, ...state }));
+            }
+          }
+        }
+
+        server.publish('world', JSON.stringify({ type: 'player_update', id: ws.data.id, state: { deleted: true } }));
         return;
       }
 
       if (msg.type === 'player_update' && msg.state && ws.data.identified) {
         onlinePlayers.set(ws.data.id, msg.state as OnlinePlayerState);
+        playerLastSeen.set(ws.data.id, Date.now());
         ws.publish('world', JSON.stringify({ type: 'player_update', id: ws.data.id, state: msg.state }));
         return;
       }
@@ -140,8 +165,9 @@ const server = Bun.serve<ClientData>({
 
     close(ws) {
       console.log(`[WS] Client disconnected: ${ws.data.id}`);
-      if (ws.data.identified) {
+      if (ws.data.identified && onlinePlayers.has(ws.data.id)) {
         onlinePlayers.delete(ws.data.id);
+        playerLastSeen.delete(ws.data.id);
 
         const idx = connectedClients.indexOf(ws.data.id);
         if (idx !== -1) connectedClients.splice(idx, 1);
@@ -163,7 +189,7 @@ const server = Bun.serve<ClientData>({
           }
         }
 
-        server.publish('world', JSON.stringify({ type: 'player_leave', id: ws.data.id }));
+        server.publish('world', JSON.stringify({ type: 'player_update', id: ws.data.id, state: { deleted: true } }));
       }
     },
   },
@@ -171,3 +197,15 @@ const server = Bun.serve<ClientData>({
 
 const domain = Bun.env.DOMAIN ?? 'localhost';
 console.log(`[WS] Server running on ws://${server.hostname}:${server.port}`);
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, lastSeen] of playerLastSeen) {
+    if (now - lastSeen > 3000) {
+      console.log(`[WS] Removed stale player: ${id}`);
+      onlinePlayers.delete(id);
+      playerLastSeen.delete(id);
+      server.publish('world', JSON.stringify({ type: 'player_update', id, state: { deleted: true } }));
+    }
+  }
+}, 1000);

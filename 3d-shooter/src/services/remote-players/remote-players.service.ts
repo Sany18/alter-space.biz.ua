@@ -1,6 +1,5 @@
 import { RemotePlayer, RemotePlayerState } from '../../components/RemotePlayer/RemotePlayer';
 import { Scene } from '../../types/extended-threejs-types/scene.type';
-import { AppConfig } from '../../config';
 
 class RemotePlayersServiceClass {
   private players = new Map<string, RemotePlayer>();
@@ -23,31 +22,12 @@ class RemotePlayersServiceClass {
     }
   }
 
-  /** Called every render frame to advance remote player animations at full FPS. */
-  tick() {
-    for (const player of this.players.values()) {
-      player.tick();
-    }
-  }
-
   remove(id: string) {
     const player = this.players.get(id);
     if (player) {
       player.destroy();
       this.players.delete(id);
       console.log(`[RemotePlayers] Player left: ${id}`);
-    }
-  }
-
-  /** Remove players that haven't sent an update within remotePlayerTimeoutMs. */
-  cleanup() {
-    const now = Date.now();
-    for (const [id, player] of this.players) {
-      if (now - player.lastSeen > AppConfig.remotePlayerTimeoutMs) {
-        player.destroy();
-        this.players.delete(id);
-        console.log(`[RemotePlayers] Removed stale player: ${id}`);
-      }
     }
   }
 

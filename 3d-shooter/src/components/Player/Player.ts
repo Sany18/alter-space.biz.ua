@@ -193,7 +193,7 @@ export default class Player {
 
   savePosition = () => {
     WsService.send({
-      type: 'save_position',
+      type: 'leave_server',
       state: {
         position: this.cannonBody.position,
         rotation: this.cannonBody.quaternion,

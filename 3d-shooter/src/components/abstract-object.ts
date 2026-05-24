@@ -69,7 +69,6 @@ export class AbstractObject {
   }
 
   addCannonBody(moveable: boolean = false) {
-    console.log(this);
     if (this.bufferGeometry) return;
     if (this.mesh instanceof THREE.Line) return;
 
