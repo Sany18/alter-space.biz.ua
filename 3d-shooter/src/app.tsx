@@ -45,6 +45,7 @@ mountMainMenu();
 WsService.connect();
 
 RemotePlayersService.init(scene);
+gameScene.addAction('remote-players-tick', () => RemotePlayersService.tick());
 
 WsService.on('player_update', (msg: any) => {
   const isSelf = msg.id === WsService.socketId;
