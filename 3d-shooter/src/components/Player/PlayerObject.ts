@@ -395,7 +395,7 @@ export class PlayerObject extends AbstractObject {
     // "Tent" mapping: front hemisphere (|camRel| ≤ π/2) → exact angle (45°→45°),
     // back hemisphere folds back to 0 so backward walk has no body turn and
     // the leg phase-reversal handles the direction instead.
-    const strafeB = b > 0.2 ? b : 0;
+    const strafeB = b < 0.2 ? b * (b / 0.2) : b; // smooth quadratic ramp — avoids snap at the blend threshold
     const absCamRel = Math.abs(camRel);
     const bodyTurn  = absCamRel <= Math.PI / 2
       ? camRel                                          // front: exact
@@ -407,6 +407,9 @@ export class PlayerObject extends AbstractObject {
 
     // Spine counteracts half the body rotation — upper body stays aimed at camera
     lerp_to(this.spine, 'ry', -bodyTurn * 0.5 * strafeB, lr);
+
+    // Neck counteracts the remaining half so the head always faces the camera yaw
+    lerp_to(this.neckPivot, 'ry', -bodyTurn * 0.5 * strafeB, lr);
   }
 }
 

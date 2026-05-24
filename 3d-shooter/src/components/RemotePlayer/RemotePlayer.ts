@@ -7,6 +7,7 @@ export interface RemotePlayerState {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
   crouching?: boolean;
+  cameraPitch?: number;
 }
 
 export class RemotePlayer {
@@ -15,9 +16,19 @@ export class RemotePlayer {
   lastSeen: number = Date.now();
 
   private _lastUpdateTime = performance.now();
+  private _lastTickTime = performance.now();
   private _lastX = NaN;
   private _lastZ = NaN;
   private _lastVelocityAngle = 0;
+
+  // Persisted between WS updates — read every render frame by tick()
+  private _currentSpeed = 0;
+  private _eulerYaw = 0;
+  private _crouching = false;
+  private _cameraPitch = 0;
+
+  private readonly _tmpQ = new THREE.Quaternion();
+  private readonly _tmpE = new THREE.Euler();
 
   constructor(private scene: Scene) {
     this._playerObject = new PlayerObject(scene, config.body);
@@ -37,34 +48,47 @@ export class RemotePlayer {
     const delta = Math.min((now - this._lastUpdateTime) / 1000, 0.1);
     this._lastUpdateTime = now;
 
-    // Derive speed and direction from position delta.
-    // Guard delta > 0 to avoid division by zero (two messages in the same ms
-    // give delta = 0, which turns dist / 0 into Infinity, and 0 * Infinity = NaN
-    // corrupting _animPhase and making all joint rotations NaN / invisible).
-    let actualSpeed = 0;
+    // Derive speed and direction from position delta between WS messages.
+    // Guard delta > 0 to avoid division by zero when two messages land in the same ms.
     if (!isNaN(this._lastX) && delta > 0) {
       const dx = state.position.x - this._lastX;
       const dz = state.position.z - this._lastZ;
       const dist = Math.sqrt(dx * dx + dz * dz);
-      actualSpeed = Math.min((dist / delta) * 4, 500); // cap avoids huge spike on stale delta
-      if (dist > 0.001) {
+      // Ignore micro-slides smaller than this threshold — physics damping leaves
+      // a tiny residual drift that would otherwise trigger the walk animation
+      // even when the remote player is standing still.
+      const MIN_MOVE_DIST = 0.05;
+      if (dist > MIN_MOVE_DIST) {
+        this._currentSpeed = Math.min((dist / delta) * 4, 500);
         this._lastVelocityAngle = Math.atan2(dx, dz);
+      } else {
+        this._currentSpeed = 0;
       }
+    } else {
+      this._currentSpeed = 0;
     }
     this._lastX = state.position.x;
     this._lastZ = state.position.z;
 
-    // Yaw from quaternion
-    const q = new THREE.Quaternion(state.rotation.x, state.rotation.y, state.rotation.z, state.rotation.w);
-    const euler = new THREE.Euler().setFromQuaternion(q, 'YXZ');
-    const eulerYaw = euler.y;
-
-    this._playerObject.animate(delta, actualSpeed, actualSpeed, eulerYaw, this._lastVelocityAngle, false, !!state.crouching);
+    // Cache yaw and crouch state — consumed every frame by tick()
+    this._tmpQ.set(state.rotation.x, state.rotation.y, state.rotation.z, state.rotation.w);
+    this._eulerYaw = this._tmpE.setFromQuaternion(this._tmpQ, 'YXZ').y;
+    this._crouching = !!state.crouching;
+    this._cameraPitch = state.cameraPitch ?? 0;
 
     this._root.position.set(state.position.x, state.position.y, state.position.z);
-    this._root.quaternion.set(state.rotation.x, state.rotation.y, state.rotation.z, state.rotation.w);
+    this._root.quaternion.copy(this._tmpQ);
 
     this.lastSeen = Date.now();
+  }
+
+  /** Called every render frame — advances the animation at full FPS. */
+  tick() {
+    const now = performance.now();
+    const delta = Math.min((now - this._lastTickTime) / 1000, 0.1);
+    this._lastTickTime = now;
+    this._playerObject.animate(delta, this._currentSpeed, this._currentSpeed, this._eulerYaw, this._lastVelocityAngle, false, this._crouching);
+    this._playerObject.headPivot.rotation.x = -this._cameraPitch;
   }
 
   destroy() {

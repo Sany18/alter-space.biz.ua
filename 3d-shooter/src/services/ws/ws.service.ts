@@ -14,6 +14,7 @@ export interface PlayerUpdateState {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
   crouching?: boolean;
+  cameraPitch?: number;
 }
 
 export interface Vec3 { x: number; y: number; z: number; }

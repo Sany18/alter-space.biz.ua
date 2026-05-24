@@ -23,6 +23,13 @@ class RemotePlayersServiceClass {
     }
   }
 
+  /** Called every render frame to advance remote player animations at full FPS. */
+  tick() {
+    for (const player of this.players.values()) {
+      player.tick();
+    }
+  }
+
   remove(id: string) {
     const player = this.players.get(id);
     if (player) {

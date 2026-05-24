@@ -43,6 +43,7 @@ mountMainMenu();
 WsService.connect();
 
 RemotePlayersService.init(scene);
+gameScene.addAction('remote-players-tick', () => RemotePlayersService.tick());
 
 WsService.on('player_update', (msg: any) => {
   const isSelf = msg.id === WsService.socketId;
@@ -63,7 +64,7 @@ setInterval(() => {
   const q = player.cannonBody.quaternion;
   WsService.send({
     type: 'player_update',
-    state: { position: { x, y, z }, rotation: { x: q.x, y: q.y, z: q.z, w: q.w }, crouching: player.crouch },
+    state: { position: { x, y, z }, rotation: { x: q.x, y: q.y, z: q.z, w: q.w }, crouching: player.crouch, cameraPitch: player.eulerX.x },
   });
 }, 1000 / AppConfig.playerUpdateRate);
 
