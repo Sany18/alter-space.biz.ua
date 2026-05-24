@@ -39,6 +39,8 @@ export default class Player {
   private _lastBodyZ = 0;
   private _headCamPos = new THREE.Vector3();
 
+  isMobileActive = false;
+
   /*get*/
   moveForward = false;
   moveBackward = false;
@@ -119,7 +121,7 @@ export default class Player {
       this.camera.position.set(this._headCamPos.x, this._headCamPos.y + 0.85, this._headCamPos.z - 0.5);
     }
 
-    if (document.pointerLockElement) {
+    if (document.pointerLockElement || this.isMobileActive) {
       this.applyCrouch(this.crouch);
 
       this.cannonBody.quaternion.setFromEuler(this.eulerY.x, this.eulerY.y, this.eulerY.z);
@@ -309,6 +311,21 @@ export default class Player {
       // Use a "good" threshold value between 0 and 1 here!
       this.canJump = true;
     }
+  }
+
+  applyTouchLook = (dx: number, dy: number) => {
+    this.eulerY.y -= dx * 0.004;
+    this.eulerX.x -= dy * 0.004;
+    this.eulerX.x = Math.max(config.camera.minAngle, Math.min(config.camera.maxAngle, this.eulerX.x));
+
+    if (config.camera.thirdPerson) {
+      const [, y, z] = config.camera.thirdPersonPosition;
+      this.camera.position.y = this.eulerX.x > 0 ? y : Math.sin(-this.eulerX.x) * 10 + y;
+      this.camera.position.z = this.eulerX.x < 0 ? Math.cos(this.eulerX.x) * z : z;
+    }
+
+    this.camera.quaternion.setFromEuler(this.eulerX);
+    this.cannonBody.quaternion.setFromEuler(this.eulerY.x, this.eulerY.y, this.eulerY.z);
   }
 
   private onMouseMove = (event: any) => {

@@ -32,7 +32,13 @@ function MainMenu() {
 
   const handleContinue = (e: React.MouseEvent) => {
     e.stopPropagation();
-    PointerLockService.request();
+    if (navigator.maxTouchPoints > 0) {
+      // Mobile: no pointer lock available — just hide the menu.
+      const blocker = document.getElementById('blocker');
+      if (blocker) blocker.style.display = 'none';
+    } else {
+      PointerLockService.request();
+    }
   };
 
   if (page === 'settings') {

@@ -1,0 +1,89 @@
+.mobile-controls {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &__look-area {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+  }
+
+  &__joystick-base {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.10);
+    border: 2px solid var(--clr-border-btn);
+    pointer-events: auto;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__joystick-knob {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--clr-surface-btn-hover);
+    border: 2px solid var(--clr-accent);
+    pointer-events: none;
+  }
+
+  &__jump-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.10);
+    border: 2px solid var(--clr-border-btn);
+    color: var(--clr-text-primary);
+    font-size: 24px;
+    line-height: 1;
+    pointer-events: auto;
+    z-index: 2;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      background: var(--clr-surface-btn-active);
+    }
+  }
+
+  &__menu-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 2px solid var(--clr-border-btn);
+    color: var(--clr-text-primary);
+    font-size: 20px;
+    line-height: 1;
+    pointer-events: auto;
+    z-index: 2;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      background: var(--clr-surface-btn-active);
+    }
+  }
+}

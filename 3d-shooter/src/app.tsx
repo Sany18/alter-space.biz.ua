@@ -7,6 +7,7 @@ import { mountMainMenu } from "./components/MainMenu/MainMenu";
 import { RemotePlayersService } from "./services/remote-players/remote-players.service";
 import { PhysicsAuthorityService } from "./services/physics-authority/physics-authority.service";
 import { AppConfig } from "./config";
+import { MobileControls } from "./components/MobileControls/MobileControls";
 
 const f7 = (n: number) => n.toPrecision(7);
 
@@ -43,6 +44,10 @@ GlobalStateService.set('camera', camera);
 
 mountMainMenu();
 WsService.connect();
+
+if (MobileControls.isTouchDevice()) {
+  new MobileControls(player);
+}
 
 RemotePlayersService.init(scene);
 gameScene.addAction('remote-players-tick', () => RemotePlayersService.tick());

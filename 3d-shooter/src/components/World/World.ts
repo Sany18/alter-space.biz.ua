@@ -155,7 +155,7 @@ export class World {
 
     this.internalActions.push(() => this.updateCannon());
     this.internalActions.push(() => this.cannonWorld.step(
-      0.016666666666666666, this.clock.getDelta(), 3
+      0.016, this.clock.getDelta(), 3
     ));
 
     this.cannonDebugger = CannonDebugger(this.scene, this.cannonWorld, {

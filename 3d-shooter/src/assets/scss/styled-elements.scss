@@ -4,4 +4,5 @@
   width: 100vw;
   height: 100vh;
   cursor: default;
+  z-index: 200; /* above mobile-controls (z-index: 100) */
 }

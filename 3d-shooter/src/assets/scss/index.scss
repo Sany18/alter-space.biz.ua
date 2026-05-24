@@ -39,6 +39,10 @@ body {
   color: var(--clr-text-primary);
 }
 
+canvas {
+  touch-action: none;
+}
+
 #root {
   flex: 1;
   display: flex;
