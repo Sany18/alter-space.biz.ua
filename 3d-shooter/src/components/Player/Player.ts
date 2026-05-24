@@ -349,6 +349,7 @@ export default class Player {
   }
 
   private keydown = (event: any) => {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     // Prevent CMD+W/Q/S/A/D etc. from triggering browser actions while in-game.
     // CMD+R (reload) is intentionally left through.
     // Note: CMD+W cannot be blocked in Chrome/Safari — the browser intercepts it.
@@ -370,6 +371,7 @@ export default class Player {
   }
 
   private keyup = (event: any) => {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     switch (event.code) {
       case 'KeyW': case 'ArrowUp':    this.moveForward = false; break;   // W forward
       case 'KeyS': case 'ArrowDown':  this.moveBackward = false; break;  // S back

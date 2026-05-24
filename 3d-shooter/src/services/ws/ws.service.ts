@@ -60,13 +60,19 @@ export type WsIncomingMessage =
   | { type: 'player_leave'; id: string }
   | { type: 'server_role'; serverId: string | null }
   | { type: 'object_update'; id: number; ownerId: string; position: Vec3; quaternion: Quat; velocity: Vec3; angularVelocity: Vec3 }
-  | { type: 'object_release'; id: number };
+  | { type: 'object_release'; id: number }
+  | { type: 'chat_message'; socketId: string; playerName: string; text: string; timestamp: number }
+  | { type: 'chat_history'; messages: Array<{ socketId: string; playerName: string; text: string; timestamp: number }> };
 
 type MessageHandler<T extends WsIncomingMessage = WsIncomingMessage> = (msg: T) => void;
 
 class WsServiceClass {
   private socket: WebSocket | null = null;
   private handlers = new Map<string, MessageHandler<any>>();
+  /** Messages received before a handler was registered — replayed on .on() */
+  private replayBuffer = new Map<string, WsIncomingMessage>();
+  /** Message types that should be buffered for late subscribers */
+  private static readonly REPLAY_TYPES = new Set(['chat_history', 'position_init', 'server_role']);
   private url: string | null = null;
 
   /** Persistent across page reloads — used only for save_position / position_init. */
@@ -94,7 +100,11 @@ class WsServiceClass {
     this.socket.addEventListener('open', () => {
       console.log('[WsService] Connected to', url);
       // Claim the persistent client ID so the server associates it with this socket
-      this.socket!.send(JSON.stringify({ type: 'hello', id: this.clientId }));
+      this.socket!.send(JSON.stringify({
+        type: 'hello',
+        id: this.clientId,
+        playerName: (LocalStorageService.get('player-settings') ?? {}).playerName ?? 'Player',
+      }));
     });
 
     this.socket.addEventListener('message', (event: MessageEvent<string>) => {
@@ -113,7 +123,13 @@ class WsServiceClass {
         console.log('[WsService] Socket ID assigned by server:', this.socketId);
       }
 
-      this.handlers.get(msg.type)?.(msg);
+      const handler = this.handlers.get(msg.type);
+      if (handler) {
+        handler(msg);
+      } else if (WsServiceClass.REPLAY_TYPES.has(msg.type)) {
+        // No handler yet — buffer so it can be replayed when one registers
+        this.replayBuffer.set(msg.type, msg);
+      }
     });
 
     this.socket.addEventListener('close', () => {
@@ -139,6 +155,12 @@ class WsServiceClass {
 
   on<T extends WsIncomingMessage>(type: T['type'], handler: MessageHandler<T>) {
     this.handlers.set(type, handler as MessageHandler<any>);
+    // Replay a buffered message of this type if it arrived before registration
+    const buffered = this.replayBuffer.get(type);
+    if (buffered) {
+      this.replayBuffer.delete(type);
+      (handler as MessageHandler<any>)(buffered);
+    }
   }
 
   off(type: string) {
@@ -149,6 +171,11 @@ class WsServiceClass {
     if (this.socket?.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(data));
     }
+  }
+
+  sendChat(text: string) {
+    const trimmed = text.trim().slice(0, 300);
+    if (trimmed) this.send({ type: 'chat_message', text: trimmed });
   }
 
   sendRaw(str: string) {

@@ -3,6 +3,14 @@ import { LocalStorageService } from '../localstorage/localstorage.service';
 
 const _savedDebugSettings = LocalStorageService.get('debug-settings') || {};
 const _savedGraphicsSettings = LocalStorageService.get('graphics-settings') || {};
+const _savedPlayerSettings = LocalStorageService.get('player-settings') || {};
+
+function _getOrCreatePlayerName(): string {
+  if (_savedPlayerSettings.playerName) return _savedPlayerSettings.playerName;
+  const name = 'Player' + Math.floor(1000 + Math.random() * 9000);
+  LocalStorageService.set('player-settings', { ..._savedPlayerSettings, playerName: name });
+  return name;
+}
 
 export class GlobalStateService {
   static state: any = {
@@ -11,6 +19,7 @@ export class GlobalStateService {
     daytime: _savedDebugSettings.daytime ?? true,
     thirdPerson: _savedDebugSettings.thirdPerson ?? false,
     shadowQuality: _savedGraphicsSettings.shadowQuality ?? 'high',
+    playerName: _getOrCreatePlayerName(),
   };
   
   

@@ -3,8 +3,7 @@ import { World } from "./components/World/World";
 import { Location1 } from "./scenes/Location-1/Location-1";
 import { GlobalStateService } from "./services/global-state/global-state.service";
 import { WsService } from "./services/ws/ws.service";
-import { mountMainMenu } from "./components/MainMenu/MainMenu";
-import { RemotePlayersService } from "./services/remote-players/remote-players.service";
+import { mountMainMenu } from "./components/MainMenu/MainMenu";import { mountChat } from './components/Chat/Chat';import { RemotePlayersService } from "./services/remote-players/remote-players.service";
 import { PhysicsAuthorityService } from "./services/physics-authority/physics-authority.service";
 import { AppConfig } from "./config";
 import { MobileControls } from "./components/MobileControls/MobileControls";
@@ -43,6 +42,7 @@ GlobalStateService.set('scene', scene);
 GlobalStateService.set('camera', camera);
 
 mountMainMenu();
+mountChat();
 WsService.connect();
 
 if (MobileControls.isTouchDevice()) {

@@ -2,6 +2,9 @@
   "name": "3d-shooter-server",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "mongodb": "^6.0.0"
+  },
   "scripts": {
     "start": "bun --env-file ../.env index.ts",
     "dev": "bun --env-file ../.env --watch index.ts"

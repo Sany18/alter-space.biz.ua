@@ -1,7 +1,52 @@
+import { MongoClient, Collection } from 'mongodb';
+
+interface ChatMessageDoc {
+  socketId: string;
+  playerName: string;
+  text: string;
+  timestamp: number;
+}
+
+const MONGO_URL = Bun.env.MONGO_URL ?? 'mongodb://localhost:27017';
+const mongoClient = new MongoClient(MONGO_URL);
+let chatCollection: Collection<ChatMessageDoc> | null = null;
+
+/** In-memory ring buffer — always available, even without MongoDB */
+const MAX_IN_MEMORY_CHAT = 200;
+const inMemoryChat: ChatMessageDoc[] = [];
+
+function pushChatMessage(msg: ChatMessageDoc) {
+  inMemoryChat.push(msg);
+  if (inMemoryChat.length > MAX_IN_MEMORY_CHAT) inMemoryChat.shift();
+  chatCollection?.insertOne({ ...msg }).catch(() => {});
+}
+
+async function connectMongo() {
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db('3d-shooter');
+    chatCollection = db.collection<ChatMessageDoc>('chat_messages');
+    await chatCollection.createIndex({ timestamp: -1 });
+    // Backfill in-memory buffer from DB so history survives a server restart
+    const recent = await chatCollection
+      .find({})
+      .sort({ timestamp: -1 })
+      .limit(MAX_IN_MEMORY_CHAT)
+      .toArray();
+    recent.reverse();
+    inMemoryChat.push(...recent);
+    console.log(`[MongoDB] Connected — loaded ${recent.length} chat messages`);
+  } catch (err) {
+    console.error('[MongoDB] Connection failed (in-memory fallback active):', err);
+  }
+}
+connectMongo();
+
 interface ClientData {
   id: string;       // server-generated socket UUID — unique per WS connection
   clientId: string; // client's persistent localStorage ID — used only for save/restore
   identified: boolean;
+  playerName: string;
 }
 
 interface PlayerState {
@@ -48,7 +93,7 @@ const server = Bun.serve<ClientData>({
   port: Number(Bun.env.SHOOTER_WS_PORT ?? 3001),
 
   fetch(req, server) {
-    if (server.upgrade(req, { data: { id: crypto.randomUUID(), clientId: '', identified: false } })) return;
+    if (server.upgrade(req, { data: { id: crypto.randomUUID(), clientId: '', identified: false, playerName: 'Player' } })) return;
     return new Response('3D Shooter WS Server', { status: 200 });
   },
 
@@ -110,11 +155,11 @@ const server = Bun.serve<ClientData>({
       try { msg = JSON.parse(str); } catch { return; }
 
       if (msg.type === 'hello' && msg.id) {
-        // ws.data.id stays as the server-generated socket UUID (unique per connection).
-        // ws.data.clientId is the client's persistent localStorage ID used only for
-        // position save/restore — multiple tabs on the same machine share this.
         ws.data.clientId = msg.id;
         ws.data.identified = true;
+        ws.data.playerName = typeof msg.playerName === 'string'
+          ? msg.playerName.trim().slice(0, 24) || 'Player'
+          : 'Player';
         ws.subscribe('world');
         connectedClients.push(ws.data.id);
         console.log(`[WS] Client identified:   ${ws.data.id} (clientId: ${ws.data.clientId})`);
@@ -145,6 +190,27 @@ const server = Bun.serve<ClientData>({
           ws.send(JSON.stringify({ type: 'position_init', state: savedState }));
           console.log(`[WS] Restored position for: ${ws.data.clientId}`);
         }
+
+        // Send last 50 chat messages to the new client (always available from in-memory buffer)
+        ws.send(JSON.stringify({
+          type: 'chat_history',
+          messages: inMemoryChat.slice(-50),
+        }));
+
+        return;
+      }
+
+      if (msg.type === 'chat_message' && ws.data.identified) {
+        const text = typeof msg.text === 'string' ? msg.text.trim().slice(0, 300) : '';
+        if (!text) return;
+        const chatMsg: ChatMessageDoc = {
+          socketId: ws.data.id,
+          playerName: ws.data.playerName,
+          text,
+          timestamp: Date.now(),
+        };
+        pushChatMessage(chatMsg);
+        server.publish('world', JSON.stringify({ type: 'chat_message', ...chatMsg }));
         return;
       }
 

@@ -106,4 +106,29 @@
       color: var(--clr-text-primary);
     }
   }
+
+  &__input {
+    padding: 9px 12px;
+    background: var(--clr-surface-btn);
+    border: 1px solid var(--clr-border-btn);
+    border-radius: 8px;
+    color: var(--clr-text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &:hover {
+      border-color: var(--clr-accent);
+    }
+
+    &:focus {
+      border-color: var(--clr-accent);
+      background: var(--clr-surface-btn-hover);
+    }
+
+    &::placeholder {
+      color: var(--clr-text-muted);
+    }
+  }
 }
