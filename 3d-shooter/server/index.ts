@@ -1,5 +1,6 @@
 interface ClientData {
-  id: string;
+  id: string;       // server-generated socket UUID — unique per WS connection
+  clientId: string; // client's persistent localStorage ID — used only for save/restore
   identified: boolean;
 }
 
@@ -40,7 +41,7 @@ const server = Bun.serve<ClientData>({
   port: Number(Bun.env.SHOOTER_WS_PORT ?? 3001),
 
   fetch(req, server) {
-    if (server.upgrade(req, { data: { id: crypto.randomUUID(), identified: false } })) return;
+    if (server.upgrade(req, { data: { id: crypto.randomUUID(), clientId: '', identified: false } })) return;
     return new Response('3D Shooter WS Server', { status: 200 });
   },
 
@@ -54,11 +55,14 @@ const server = Bun.serve<ClientData>({
       try { msg = JSON.parse(String(raw)); } catch { return; }
 
       if (msg.type === 'hello' && msg.id) {
-        ws.data.id = msg.id;
+        // ws.data.id stays as the server-generated socket UUID (unique per connection).
+        // ws.data.clientId is the client's persistent localStorage ID used only for
+        // position save/restore — multiple tabs on the same machine share this.
+        ws.data.clientId = msg.id;
         ws.data.identified = true;
         ws.subscribe('world');
         connectedClients.push(ws.data.id);
-        console.log(`[WS] Client identified:   ${ws.data.id}`);
+        console.log(`[WS] Client identified:   ${ws.data.id} (clientId: ${ws.data.clientId})`);
 
         // Elect server if none yet; notify others via ws.publish (excludes sender)
         if (!serverId) {
@@ -67,6 +71,7 @@ const server = Bun.serve<ClientData>({
           ws.publish('world', JSON.stringify({ type: 'server_role', serverId }));
         }
 
+        // Send our server-generated socket id so the client can filter its own updates
         ws.send(JSON.stringify({ type: 'init', id: ws.data.id }));
         ws.send(JSON.stringify({ type: 'server_role', serverId }));
 
@@ -80,17 +85,17 @@ const server = Bun.serve<ClientData>({
           ws.send(JSON.stringify({ type: 'object_update', id, ...state }));
         }
 
-        const savedState = playerStates.get(ws.data.id);
+        const savedState = playerStates.get(ws.data.clientId);
         if (savedState) {
           ws.send(JSON.stringify({ type: 'position_init', state: savedState }));
-          console.log(`[WS] Restored position for: ${ws.data.id}`);
+          console.log(`[WS] Restored position for: ${ws.data.clientId}`);
         }
         return;
       }
 
       if (msg.type === 'save_position' && msg.state) {
-        playerStates.set(ws.data.id, msg.state as PlayerState);
-        console.log(`[WS] Saved position for:  ${ws.data.id}`);
+        playerStates.set(ws.data.clientId, msg.state as PlayerState);
+        console.log(`[WS] Saved position for:  ${ws.data.clientId}`);
         return;
       }
 
@@ -165,4 +170,4 @@ const server = Bun.serve<ClientData>({
 });
 
 const domain = Bun.env.DOMAIN ?? 'localhost';
-console.log(`[WS] Server running on ws://${domain}:${server.port}`);
+console.log(`[WS] Server running on ws://${server.hostname}:${server.port}`);

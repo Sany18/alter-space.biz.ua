@@ -25,13 +25,13 @@ class PhysicsAuthorityServiceClass {
   private lastSendTime = 0;
 
   get isServer(): boolean {
-    return !!this.serverId && this.serverId === WsService.clientId;
+    return !!this.serverId && this.serverId === WsService.socketId;
   }
 
   private isAuthoritativeFor(id: number): boolean {
     const owner = this.objectOwners.get(id) ?? '';
     if (owner === '') return this.isServer;
-    return owner === WsService.clientId;
+    return owner === WsService.socketId;
   }
 
   init() {
@@ -98,8 +98,8 @@ class PhysicsAuthorityServiceClass {
   }
 
   private claimOwnership(id: number) {
-    if (this.objectOwners.get(id) === WsService.clientId) return;
-    this.objectOwners.set(id, WsService.clientId);
+    if (this.objectOwners.get(id) === WsService.socketId) return;
+    this.objectOwners.set(id, WsService.socketId);
     this.activateBody(id);
   }
 
@@ -157,7 +157,7 @@ class PhysicsAuthorityServiceClass {
       if (speed < SLEEP_VELOCITY_THRESHOLD) {
         if (!this.stoppedSince.has(id)) this.stoppedSince.set(id, now);
         // Non-server owner releases ownership once object has stopped
-        if (!this.isServer && this.objectOwners.get(id) === WsService.clientId) {
+        if (!this.isServer && this.objectOwners.get(id) === WsService.socketId) {
           const stoppedFor = now - this.stoppedSince.get(id)!;
           if (stoppedFor > SLEEP_AFTER_MS) {
             // Save current state so the body stays put while waiting for server updates
@@ -179,7 +179,7 @@ class PhysicsAuthorityServiceClass {
       WsService.send({
         type: 'object_update',
         id,
-        ownerId: WsService.clientId,
+        ownerId: WsService.socketId,
         position: { x: body.position.x, y: body.position.y, z: body.position.z },
         quaternion: { x: body.quaternion.x, y: body.quaternion.y, z: body.quaternion.z, w: body.quaternion.w },
         velocity: { x: body.velocity.x, y: body.velocity.y, z: body.velocity.z },

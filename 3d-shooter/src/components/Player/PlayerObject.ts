@@ -89,12 +89,13 @@ export class PlayerObject extends AbstractObject {
   rightShoulderPivot!: THREE.Group;
   rightElbowPivot!: THREE.Group;
 
-  constructor(scene: Scene, bodyConfig: { standHeight: number; crouchHeight: number; bodyWidth: number; bodyDepth: number }) {
+  constructor(scene: Scene, bodyConfig: { size: [number, number, number]; crouchHeight: number }) {
     super(scene);
-    this._crouchBodyOffset = (bodyConfig.standHeight - bodyConfig.crouchHeight) / 2;
+    const [bodyWidth, standHeight, bodyDepth] = bodyConfig.size;
+    this._crouchBodyOffset = (standHeight - bodyConfig.crouchHeight) / 2;
 
     // Invisible box — only drives CANNON physics body (unchanged)
-    this.geometry = new THREE.BoxGeometry(bodyConfig.bodyWidth, bodyConfig.standHeight, bodyConfig.bodyDepth);
+    this.geometry = new THREE.BoxGeometry(bodyWidth, standHeight, bodyDepth);
     this.material = new THREE.MeshBasicMaterial({ visible: false });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
     this.mesh.position.set(0, 20, 50);

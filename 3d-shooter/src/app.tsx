@@ -45,7 +45,9 @@ WsService.connect();
 RemotePlayersService.init(scene);
 
 WsService.on('player_update', (msg: any) => {
-  if (msg.id !== WsService.clientId) {
+  const isSelf = msg.id === WsService.socketId;
+  console.log(`[player_update] from=${msg.id} | mySocket=${WsService.socketId} | isSelf=${isSelf}`);
+  if (!isSelf) {
     RemotePlayersService.update(msg.id, msg.state);
   }
 });
@@ -61,7 +63,7 @@ setInterval(() => {
   const q = player.cannonBody.quaternion;
   WsService.send({
     type: 'player_update',
-    state: { position: { x, y, z }, rotation: { x: q.x, y: q.y, z: q.z, w: q.w } },
+    state: { position: { x, y, z }, rotation: { x: q.x, y: q.y, z: q.z, w: q.w }, crouching: player.crouch },
   });
 }, 1000 / AppConfig.playerUpdateRate);
 

@@ -13,6 +13,7 @@ export interface PlayerPositionState {
 export interface PlayerUpdateState {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
+  crouching?: boolean;
 }
 
 export interface Vec3 { x: number; y: number; z: number; }
@@ -34,7 +35,7 @@ class WsServiceClass {
   private handlers = new Map<string, MessageHandler<any>>();
   private url: string | null = null;
 
-  /** Persistent across page reloads — generated once and stored in localStorage. */
+  /** Persistent across page reloads — used only for save_position / position_init. */
   clientId: string = (() => {
     const stored = LocalStorageService.get('client-id');
     if (stored) return stored;
@@ -42,6 +43,13 @@ class WsServiceClass {
     LocalStorageService.set('client-id', id);
     return id;
   })();
+
+  /**
+   * Server-assigned socket UUID — unique per WS connection, never shared between
+   * tabs even on the same machine. Used to filter out our own player_update messages.
+   * Populated when the server sends `init`.
+   */
+  socketId: string = '';
 
   connect(url: string = __APP_WS_URL__) {
     if (this.socket?.readyState === WebSocket.OPEN) return;
@@ -64,7 +72,8 @@ class WsServiceClass {
       }
 
       if (msg.type === 'init') {
-        console.log('[WsService] ID confirmed by server:', msg.id);
+        this.socketId = msg.id;
+        console.log('[WsService] Socket ID assigned by server:', this.socketId);
       }
 
       this.handlers.get(msg.type)?.(msg);

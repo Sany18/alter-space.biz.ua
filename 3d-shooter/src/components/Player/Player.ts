@@ -19,13 +19,13 @@ export const config = {
     minAngle: THREE.MathUtils.degToRad(-89),
     maxAngle: THREE.MathUtils.degToRad(89),
     position: [0, 4.6, -1.0] as [number, number, number],
-    thirdPerson: true,
+    thirdPerson: false,
     thirdPersonPosition: [0, 7.5, 10],
   },
-  standHeight: 10,
-  crouchHeight: 6,
-  bodyWidth: 3,
-  bodyDepth: 3,
+  body: {
+    size: [3, 10, 3] as [number, number, number],
+    crouchHeight: 6,
+  },
   crouchingMovementSpeedMultiplier: 0.5,
 }
 
@@ -145,7 +145,8 @@ export default class Player {
   private crouchingPreviousState = false;
   private applyCrouch(crouching: boolean) {
     if (crouching === this.crouchingPreviousState) return;
-    const { standHeight, crouchHeight, bodyWidth, bodyDepth } = config;
+    const [bodyWidth, standHeight, bodyDepth] = config.body.size;
+    const { crouchHeight } = config.body;
     const heigthDiff = standHeight - crouchHeight; // 2.5
 
     // Swap Cannon body shape.
@@ -257,7 +258,7 @@ export default class Player {
 
   private createPlayerModel = () => {
     const crosshair = new Crosshair(this.scene);
-    const playerObject = new PlayerObject(this.scene, config);
+    const playerObject = new PlayerObject(this.scene, config.body)
 
     this.camera.add(crosshair.mesh);
 
