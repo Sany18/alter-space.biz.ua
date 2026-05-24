@@ -142,8 +142,13 @@ export class World {
   private initCannon() {
     this.cannonWorld = new CANNON.World();
     this.cannonWorld.gravity.set(0, -150, 0);
-    this.cannonWorld.broadphase = new CANNON.NaiveBroadphase();
+    this.cannonWorld.broadphase = new CANNON.SAPBroadphase(this.cannonWorld);
     this.cannonWorld.defaultContactMaterial.restitution = 0; // no bouncing
+    // Allow bodies to sleep once settled — without this all dynamic boxes are
+    // simulated every frame forever, causing progressive CPU load after they land.
+    this.cannonWorld.allowSleep = true;
+    this.cannonWorld.sleepSpeedLimit = 0.5;   // m/s below which body becomes sleepy
+    this.cannonWorld.sleepTimeLimit  = 1.0;   // seconds before sleepy → sleeping
     this.scene.cannonWorld = this.cannonWorld;
 
     this.internalActions.push(() => this.updateCannon());
@@ -169,12 +174,12 @@ export class World {
   }
 
   private updateCannon() {
-    Object.values(this.scene.children).forEach((el: any) => {
+    for (const el of this.scene.children as any[]) {
       if (el.cannonBody && !el.cannonBody.sleepState) {
         el.position.copy(el.cannonBody.position);
         el.quaternion.copy(el.cannonBody.quaternion);
       }
-    });
+    }
   }
 
   private initListeners() {
@@ -184,16 +189,5 @@ export class World {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       // composer.setSize(window.innerWidth, window.innerHeight)
     }, false);
-
-    // Stop the render + physics loop entirely when the tab is hidden.
-    // Chrome keeps the WebGL context active even in throttled background tabs,
-    // which causes GPU memory pressure that slows the whole system.
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        this.stopAnimationLoop();
-      } else {
-        this.runAnimationLoop();
-      }
-    });
   }
 }

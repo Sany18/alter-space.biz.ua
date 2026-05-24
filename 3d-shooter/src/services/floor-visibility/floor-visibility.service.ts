@@ -17,6 +17,9 @@ export type TileCoord = [number, number]; // [worldX, worldZ]
  * regardless of view direction, so the ground under the player never disappears.
  */
 export class FloorVisibilityService {
+  // Reused across calls to avoid allocating a new array + tuples every frame.
+  private static _result: TileCoord[] = [];
+
   /**
    * @param posX        Camera world X
    * @param posZ        Camera world Z
@@ -46,7 +49,8 @@ export class FloorVisibilityService {
 
     const span = Math.ceil(distance / tileSize) + footprintRadius;
 
-    const result: TileCoord[] = [];
+    const result = this._result;
+    result.length = 0; // clear without reallocating
 
     for (let i = -span; i <= span; i++) {
       for (let j = -span; j <= span; j++) {

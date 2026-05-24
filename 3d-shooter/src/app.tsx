@@ -8,6 +8,8 @@ import { RemotePlayersService } from "./services/remote-players/remote-players.s
 import { PhysicsAuthorityService } from "./services/physics-authority/physics-authority.service";
 import { AppConfig } from "./config";
 
+const f7 = (n: number) => n.toPrecision(7);
+
 const gameScene = new World();
 gameScene.init();
 
@@ -71,7 +73,6 @@ setInterval(() => {
   const { x, y, z } = player.cannonBody.position;
   const q = player.cannonBody.quaternion;
 
-  const f7 = (n: number) => n.toPrecision(7);
   WsService.sendRaw(
     `pu,${f7(x)},${f7(y)},${f7(z)},${f7(q.x)},${f7(q.y)},${f7(q.z)},${f7(q.w)},${player.crouch ? 1 : 0},${f7(player.eulerX.x)}`
   );

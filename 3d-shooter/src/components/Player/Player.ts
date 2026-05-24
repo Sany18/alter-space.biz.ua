@@ -278,6 +278,7 @@ export default class Player {
     playerObject.addToScene({ static: false });
 
     this.cannonBody = playerObject.cannonBody;
+    this.cannonBody.allowSleep = false; // player must never sleep — world has allowSleep=true for boxes
     this.cannonBody.linearDamping = 0.99; // prevent physics micro-slide when idle
     this.mesh = playerObject.mesh;
     this._playerObject = playerObject;

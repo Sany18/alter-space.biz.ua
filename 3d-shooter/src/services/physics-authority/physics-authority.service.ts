@@ -153,6 +153,10 @@ class PhysicsAuthorityServiceClass {
     for (const [id, body] of this.dynamicBodies) {
       if (!this.isAuthoritativeFor(id)) continue;
 
+      // Skip bodies cannon has already put to sleep — no state change to broadcast.
+      // Wake them up first if we just became authoritative (activateBody handles that).
+      if (body.sleepState === CANNON.Body.SLEEPING) continue;
+
       const speed = body.velocity.length() + body.angularVelocity.length();
 
       // Track when the object comes to rest
