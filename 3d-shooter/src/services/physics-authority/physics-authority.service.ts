@@ -64,10 +64,16 @@ class PhysicsAuthorityServiceClass {
 
       // Make non-authoritative body kinematic
       const body = this.dynamicBodies.get(id);
-      if (body && body.type !== CANNON.Body.KINEMATIC) {
-        body.type = CANNON.Body.KINEMATIC;
-        body.velocity.setZero();
-        body.angularVelocity.setZero();
+      if (body) {
+        if (body.type !== CANNON.Body.KINEMATIC) {
+          body.type = CANNON.Body.KINEMATIC;
+          body.velocity.setZero();
+          body.angularVelocity.setZero();
+        }
+        // Cannon.js puts settled bodies to sleep (sleepState=2). World.updateCannon()
+        // only syncs body→mesh for awake bodies, so wake it up to ensure the mesh
+        // tracks received positions while this object is being moved remotely.
+        body.wakeUp();
       }
     });
   }

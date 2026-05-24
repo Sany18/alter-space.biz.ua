@@ -23,7 +23,7 @@ export const config = {
     thirdPersonPosition: [0, 7.5, 10],
   },
   body: {
-    size: [3, 10, 3] as [number, number, number],
+    size: [3, 10, 2] as [number, number, number],
     crouchHeight: 6,
   },
   crouchingMovementSpeedMultiplier: 0.5,
