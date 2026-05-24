@@ -147,7 +147,9 @@ export class World {
     // Allow bodies to sleep once settled — without this all dynamic boxes are
     // simulated every frame forever, causing progressive CPU load after they land.
     this.cannonWorld.allowSleep = true;
+    // @ts-expect-error — cannon-es is missing this property in its typings
     this.cannonWorld.sleepSpeedLimit = 0.5;   // m/s below which body becomes sleepy
+    // @ts-expect-error — cannon-es is missing this property in its typings
     this.cannonWorld.sleepTimeLimit  = 1.0;   // seconds before sleepy → sleeping
     this.scene.cannonWorld = this.cannonWorld;
 

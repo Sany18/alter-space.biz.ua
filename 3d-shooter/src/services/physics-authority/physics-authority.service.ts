@@ -83,7 +83,6 @@ class PhysicsAuthorityServiceClass {
   }
 
   registerPlayerBody(body: CANNON.Body) {
-    this.playerBody = body;
     body.addEventListener('collide', (e: any) => {
       const hit = e.body as CANNON.Body;
       for (const [id, boxBody] of this.dynamicBodies) {
