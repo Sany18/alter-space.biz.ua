@@ -1,5 +1,38 @@
 import { LocalStorageService } from '../localstorage/localstorage.service';
 
+/**
+ * CSV wire format for high-frequency messages (≈50% smaller than JSON):
+ *   object_update  server→client  ou,{id},{ownerId},{px},{py},{pz},{qx},{qy},{qz},{qw},{vx},{vy},{vz},{avx},{avy},{avz}
+ *   object_release                or,{id}
+ *   player_update  server→client  pu,{socketId},{px},{py},{pz},{rx},{ry},{rz},{rw},{crouching01},{cameraPitch}
+ */
+function parseCsvMessage(raw: string): WsIncomingMessage | null {
+  const p = raw.split(',');
+  switch (p[0]) {
+    case 'ou': return {
+      type: 'object_update',
+      id: Number(p[1]),
+      ownerId: p[2],
+      position:        { x: Number(p[3]),  y: Number(p[4]),  z: Number(p[5])  },
+      quaternion:      { x: Number(p[6]),  y: Number(p[7]),  z: Number(p[8]),  w: Number(p[9])  },
+      velocity:        { x: Number(p[10]), y: Number(p[11]), z: Number(p[12]) },
+      angularVelocity: { x: Number(p[13]), y: Number(p[14]), z: Number(p[15]) },
+    };
+    case 'or': return { type: 'object_release', id: Number(p[1]) };
+    case 'pu': return {
+      type: 'player_update',
+      id: p[1],
+      state: {
+        position: { x: Number(p[2]), y: Number(p[3]), z: Number(p[4]) },
+        rotation: { x: Number(p[5]), y: Number(p[6]), z: Number(p[7]), w: Number(p[8]) },
+        crouching: p[9] === '1',
+        cameraPitch: Number(p[10]),
+      },
+    };
+    default: return null;
+  }
+}
+
 export interface PlayerPositionState {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number; w: number };
@@ -65,11 +98,14 @@ class WsServiceClass {
     });
 
     this.socket.addEventListener('message', (event: MessageEvent<string>) => {
+      const raw = event.data;
       let msg: WsIncomingMessage;
-      try {
-        msg = JSON.parse(event.data);
-      } catch {
-        return;
+      if (raw.charCodeAt(0) === 123 /* '{' */) {
+        try { msg = JSON.parse(raw); } catch { return; }
+      } else {
+        const parsed = parseCsvMessage(raw);
+        if (!parsed) return;
+        msg = parsed;
       }
 
       if (msg.type === 'init') {
@@ -112,6 +148,12 @@ class WsServiceClass {
   send(data: object) {
     if (this.socket?.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(data));
+    }
+  }
+
+  sendRaw(str: string) {
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(str);
     }
   }
 }

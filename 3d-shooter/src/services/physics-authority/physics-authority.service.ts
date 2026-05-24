@@ -6,6 +6,8 @@ const OBJECT_UPDATE_HZ = 20;
 const SLEEP_VELOCITY_THRESHOLD = 0.05;
 const SLEEP_AFTER_MS = 600;
 
+const f7 = (n: number) => n.toPrecision(7);
+
 interface ReceivedState {
   position: { x: number; y: number; z: number };
   quaternion: { x: number; y: number; z: number; w: number };
@@ -168,7 +170,7 @@ class PhysicsAuthorityServiceClass {
               angularVelocity: { x: body.angularVelocity.x, y: body.angularVelocity.y, z: body.angularVelocity.z },
             });
             this.objectOwners.delete(id);
-            WsService.send({ type: 'object_release', id });
+            WsService.sendRaw(`or,${id}`);
           }
           // Both server and non-server skip broadcasting idle objects
           continue;
@@ -177,15 +179,12 @@ class PhysicsAuthorityServiceClass {
         this.stoppedSince.delete(id);
       }
 
-      WsService.send({
-        type: 'object_update',
-        id,
-        ownerId: WsService.socketId,
-        position: { x: body.position.x, y: body.position.y, z: body.position.z },
-        quaternion: { x: body.quaternion.x, y: body.quaternion.y, z: body.quaternion.z, w: body.quaternion.w },
-        velocity: { x: body.velocity.x, y: body.velocity.y, z: body.velocity.z },
-        angularVelocity: { x: body.angularVelocity.x, y: body.angularVelocity.y, z: body.angularVelocity.z },
-      });
+      WsService.sendRaw(
+        `ou,${id},${f7(body.position.x)},${f7(body.position.y)},${f7(body.position.z)},` +
+        `${f7(body.quaternion.x)},${f7(body.quaternion.y)},${f7(body.quaternion.z)},${f7(body.quaternion.w)},` +
+        `${f7(body.velocity.x)},${f7(body.velocity.y)},${f7(body.velocity.z)},` +
+        `${f7(body.angularVelocity.x)},${f7(body.angularVelocity.y)},${f7(body.angularVelocity.z)}`
+      );
     }
   }
 }

@@ -62,7 +62,7 @@ WsService.on('player_update', (msg: any) => {
 let lastPlayerUpdateTime = 0;
 setInterval(() => {
   // Unfocused tab skips updates. Only one per second.
-  const minInterval = document.hidden ? 1000 : 1000 / AppConfig.playerUpdateRate;
+  const minInterval = document.hasFocus() ? 1000 / AppConfig.playerUpdateRate : 1000;
   const now = Date.now();
   if (now - lastPlayerUpdateTime < minInterval) return;
   lastPlayerUpdateTime = now;
@@ -71,15 +71,10 @@ setInterval(() => {
   const { x, y, z } = player.cannonBody.position;
   const q = player.cannonBody.quaternion;
 
-  WsService.send({
-    type: 'player_update',
-    state: {
-      position: { x, y, z },
-      rotation: { x: q.x, y: q.y, z: q.z, w: q.w },
-      crouching: player.crouch,
-      cameraPitch: player.eulerX.x
-    },
-  });
+  const f7 = (n: number) => n.toPrecision(7);
+  WsService.sendRaw(
+    `pu,${f7(x)},${f7(y)},${f7(z)},${f7(q.x)},${f7(q.y)},${f7(q.z)},${f7(q.w)},${player.crouch ? 1 : 0},${f7(player.eulerX.x)}`
+  );
 }, 1000 / AppConfig.playerUpdateRate);
 
 function App() {

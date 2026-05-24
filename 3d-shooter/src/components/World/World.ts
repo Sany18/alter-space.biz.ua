@@ -9,7 +9,8 @@ import { GlobalStateService } from '../../services/global-state/global-state.ser
 
 const config = {
   renderer: {
-    antialias: false
+    antialias: false,
+    powerPreference: 'high-performance' as WebGLPowerPreference,
   }
 }
 
@@ -89,15 +90,16 @@ export class World {
     // Resetting it would create a new instance whose canvas never appears.
   }
 
-  // Main loop
-  private animate() {
+  // Main loop — arrow function so the same reference is reused each frame
+  // (avoids allocating a new closure on every rAF call, reducing GC pressure)
+  private animate = () => {
     if (!this.animationLoopActive) return;
 
     this.clock.update();
     this.actions.forEach(action => action.action());
     this.internalActions.forEach(action => action());
 
-    requestAnimationFrame(() => this.animate());
+    requestAnimationFrame(this.animate);
   }
 
   private initClock() {
@@ -181,6 +183,17 @@ export class World {
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       // composer.setSize(window.innerWidth, window.innerHeight)
-    }, false)
+    }, false);
+
+    // Stop the render + physics loop entirely when the tab is hidden.
+    // Chrome keeps the WebGL context active even in throttled background tabs,
+    // which causes GPU memory pressure that slows the whole system.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.stopAnimationLoop();
+      } else {
+        this.runAnimationLoop();
+      }
+    });
   }
 }

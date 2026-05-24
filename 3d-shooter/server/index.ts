@@ -35,6 +35,12 @@ const onlinePlayers = new Map<string, OnlinePlayerState>();
 const playerLastSeen = new Map<string, number>();
 const objectStates = new Map<number, ObjectState>();
 
+function encodeObjectUpdate(id: number, s: ObjectState): string {
+  const { position: p, quaternion: q, velocity: v, angularVelocity: a, ownerId } = s;
+  const f = (n: number) => n.toPrecision(7);
+  return `ou,${id},${ownerId},${f(p.x)},${f(p.y)},${f(p.z)},${f(q.x)},${f(q.y)},${f(q.z)},${f(q.w)},${f(v.x)},${f(v.y)},${f(v.z)},${f(a.x)},${f(a.y)},${f(a.z)}`;
+}
+
 let serverId: string | null = null;
 const connectedClients: string[] = [];
 
@@ -52,8 +58,56 @@ const server = Bun.serve<ClientData>({
     },
 
     message(ws, raw) {
+      const str = String(raw);
+
+      // --- CSV fast path for high-frequency messages ---
+      if (str.charCodeAt(0) !== 123 /* '{' */) {
+        if (!ws.data.identified) return;
+        const p = str.split(',');
+        const prefix = p[0];
+
+        if (prefix === 'ou') {
+          // object_update client→server: ou,id,px,py,pz,qx,qy,qz,qw,vx,vy,vz,avx,avy,avz
+          const objId = Number(p[1]);
+          objectStates.set(objId, {
+            position:        { x: Number(p[2]),  y: Number(p[3]),  z: Number(p[4])  },
+            quaternion:      { x: Number(p[5]),  y: Number(p[6]),  z: Number(p[7]),  w: Number(p[8])  },
+            velocity:        { x: Number(p[9]),  y: Number(p[10]), z: Number(p[11]) },
+            angularVelocity: { x: Number(p[12]), y: Number(p[13]), z: Number(p[14]) },
+            ownerId: ws.data.id,
+          });
+          // server→clients: inject ownerId between id and position
+          ws.publish('world', `ou,${objId},${ws.data.id},${p.slice(2).join(',')}`);
+          return;
+        }
+
+        if (prefix === 'or') {
+          // object_release: or,id
+          const objId = Number(p[1]);
+          const state = objectStates.get(objId);
+          if (state) state.ownerId = serverId ?? '';
+          server.publish('world', `or,${objId}`);
+          return;
+        }
+
+        if (prefix === 'pu') {
+          // player_update client→server: pu,px,py,pz,rx,ry,rz,rw,crouching,cameraPitch
+          onlinePlayers.set(ws.data.id, {
+            position: { x: Number(p[1]), y: Number(p[2]), z: Number(p[3]) },
+            rotation: { x: Number(p[4]), y: Number(p[5]), z: Number(p[6]), w: Number(p[7]) },
+          });
+          playerLastSeen.set(ws.data.id, Date.now());
+          // server→clients: prepend socketId
+          ws.publish('world', `pu,${ws.data.id},${p.slice(1).join(',')}`);
+          return;
+        }
+
+        return; // unknown CSV prefix
+      }
+
+      // --- JSON path for low-frequency control messages ---
       let msg: { type: string; id?: string; state?: PlayerState; [key: string]: any };
-      try { msg = JSON.parse(String(raw)); } catch { return; }
+      try { msg = JSON.parse(str); } catch { return; }
 
       if (msg.type === 'hello' && msg.id) {
         // ws.data.id stays as the server-generated socket UUID (unique per connection).
@@ -83,7 +137,7 @@ const server = Bun.serve<ClientData>({
 
         // Send latest object states to the new client
         for (const [id, state] of objectStates) {
-          ws.send(JSON.stringify({ type: 'object_update', id, ...state }));
+          ws.send(encodeObjectUpdate(id, state));
         }
 
         const savedState = playerStates.get(ws.data.clientId);
@@ -114,41 +168,12 @@ const server = Bun.serve<ClientData>({
           for (const [objId, state] of objectStates) {
             if (state.ownerId === ws.data.id) {
               state.ownerId = serverId;
-              server.publish('world', JSON.stringify({ type: 'object_update', id: objId, ...state }));
+              server.publish('world', encodeObjectUpdate(objId, state));
             }
           }
         }
 
         server.publish('world', JSON.stringify({ type: 'player_update', id: ws.data.id, state: { deleted: true } }));
-        return;
-      }
-
-      if (msg.type === 'player_update' && msg.state && ws.data.identified) {
-        onlinePlayers.set(ws.data.id, msg.state as OnlinePlayerState);
-        playerLastSeen.set(ws.data.id, Date.now());
-        ws.publish('world', JSON.stringify({ type: 'player_update', id: ws.data.id, state: msg.state }));
-        return;
-      }
-
-      if (msg.type === 'object_update' && ws.data.identified) {
-        const objId = msg.id as number;
-        const os: ObjectState = {
-          position: msg.position as Vec3,
-          quaternion: msg.quaternion as Quat,
-          velocity: msg.velocity as Vec3,
-          angularVelocity: msg.angularVelocity as Vec3,
-          ownerId: ws.data.id,
-        };
-        objectStates.set(objId, os);
-        ws.publish('world', JSON.stringify({ type: 'object_update', id: objId, ...os }));
-        return;
-      }
-
-      if (msg.type === 'object_release' && ws.data.identified) {
-        const objId = msg.id as number;
-        const state = objectStates.get(objId);
-        if (state) state.ownerId = serverId ?? '';
-        server.publish('world', JSON.stringify({ type: 'object_release', id: objId }));
         return;
       }
 
@@ -184,7 +209,7 @@ const server = Bun.serve<ClientData>({
           for (const [objId, state] of objectStates) {
             if (state.ownerId === ws.data.id) {
               state.ownerId = serverId;
-              server.publish('world', JSON.stringify({ type: 'object_update', id: objId, ...state }));
+              server.publish('world', encodeObjectUpdate(objId, state));
             }
           }
         }
