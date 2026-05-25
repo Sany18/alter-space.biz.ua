@@ -12,18 +12,35 @@ type Page = 'main' | 'settings';
 const SHADOW_QUALITY_OPTIONS = ['none', 'low', 'mid', 'high', 'super'] as const;
 type ShadowQuality = typeof SHADOW_QUALITY_OPTIONS[number];
 
-const SHADOW_QUALITY_LABELS: Record<ShadowQuality, string> = {
-  none: 'None',
-  low: 'Low',
-  mid: 'Medium',
-  high: 'High',
-  super: 'Ultra',
-};
-
 function MainMenu() {
   const [page, setPage] = React.useState<Page>('main');
   const [globalState, setGlobalState] = GlobalStateService.useGlobalState();
   const [nicknameInput, setNicknameInput] = React.useState<string>(globalState.playerName ?? '');
+
+  React.useEffect(() => {
+    const handleLockChange = (e: Event) => {
+      const locked = (e as CustomEvent<boolean>).detail;
+      setGlobalState(prev => ({ ...prev, menuOpen: !locked }));
+    };
+
+    PointerLockService.lockChanged.addEventListener('change', handleLockChange);
+    return () => {
+      PointerLockService.lockChanged.removeEventListener('change', handleLockChange);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && globalState.menuOpen && !PointerLockService.locked()) {
+        PointerLockService.request();
+      }
+    };
+
+    document.addEventListener('keyup', handleKeyDown);
+    return () => {
+      document.removeEventListener('keyup', handleKeyDown);
+    };
+  }, [globalState.menuOpen]);
 
   const handleShadowQuality = (quality: ShadowQuality) => {
     const next = { ...globalState, shadowQuality: quality };
@@ -39,12 +56,11 @@ function MainMenu() {
     LocalStorageService.set('player-settings', { playerName: trimmed });
   };
 
-  const handleContinue = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (navigator.maxTouchPoints > 0) {
-      // Mobile: no pointer lock available — just hide the menu.
-      const blocker = document.getElementById('blocker');
-      if (blocker) blocker.style.display = 'none';
+  const handlePauseMenu = (e?) => {
+    e?.stopPropagation();
+
+    if (PointerLockService.locked()) {
+      PointerLockService.exit();
     } else {
       PointerLockService.request();
     }
@@ -60,6 +76,7 @@ function MainMenu() {
             <label className="main-menu__label" htmlFor="nickname">
               Nickname
             </label>
+
             <input
               id="nickname"
               className="main-menu__input"
@@ -68,8 +85,7 @@ function MainMenu() {
               maxLength={24}
               onChange={e => setNicknameInput(e.target.value)}
               onBlur={handleNicknameSave}
-              onKeyDown={e => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
-            />
+              onKeyDown={e => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}/>
           </div>
 
           <div className="main-menu__field">
@@ -80,11 +96,8 @@ function MainMenu() {
               id="shadow-quality"
               className="main-menu__select"
               value={globalState.shadowQuality}
-              onChange={e => handleShadowQuality(e.target.value as ShadowQuality)}
-            >
-              {SHADOW_QUALITY_OPTIONS.map(q => (
-                <option key={q} value={q}>{SHADOW_QUALITY_LABELS[q]}</option>
-              ))}
+              onChange={e => handleShadowQuality(e.target.value as ShadowQuality)}>
+              {SHADOW_QUALITY_OPTIONS.map(q => <option key={q} value={q}>{q}</option>)}
             </select>
           </div>
 
@@ -95,31 +108,27 @@ function MainMenu() {
       </div>
     );
   }
+  
+  if (globalState.menuOpen) {
+    return <div className="main-menu">
+        <div className="main-menu__panel">
+          <h1 className="main-menu__title">3D Shooter</h1>
 
-  return (
-    <div className="main-menu">
-      <div className="main-menu__panel">
-        <h1 className="main-menu__title">3D Shooter</h1>
-        <button className="main-menu__btn main-menu__btn--primary" onClick={handleContinue}>
+        <button className="main-menu__btn main-menu__btn--primary" onClick={handlePauseMenu}>
           Continue
         </button>
+
         <button className="main-menu__btn" onClick={() => setPage('settings')}>
           Settings
         </button>
       </div>
-    </div>
-  );
-}
+    </div>;
+  }
 
-let _root: ReactDOM.Root | null = null;
+  return null;
+}
 
 export function mountMainMenu() {
-  const blockerEl = document.getElementById('blocker')!;
-  _root = ReactDOM.createRoot(blockerEl);
-  _root.render(<MainMenu />);
-}
-
-export function unmountMainMenu() {
-  _root?.unmount();
-  _root = null;
+  ReactDOM.createRoot(document.getElementById('blocker'))
+    .render(<MainMenu />);
 }

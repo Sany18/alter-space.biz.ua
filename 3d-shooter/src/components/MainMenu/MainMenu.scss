@@ -91,6 +91,7 @@
     cursor: pointer;
     transition: background-color 0.15s, border-color 0.15s;
     outline: none;
+    text-transform: capitalize;
 
     &:hover {
       background-color: var(--clr-surface-btn-hover);

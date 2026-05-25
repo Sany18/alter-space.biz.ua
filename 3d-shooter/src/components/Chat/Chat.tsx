@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
 import { WsService } from '../../services/ws/ws.service';
+import { PointerLockService } from '../../services/pointer-lock/pointer-lock.service';
 import './Chat.scss';
 
 interface ChatMessage {
@@ -19,9 +20,13 @@ function Chat() {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState('');
   const [open, setOpen] = React.useState(false);
+  // openRef mirrors `open` state but is updated synchronously so keyboard handlers
+  // can read the current value without waiting for a useEffect/paint cycle.
+  const openRef = React.useRef(false);
   const [unread, setUnread] = React.useState(0);
   const listRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
 
   React.useEffect(() => {
     WsService.on('chat_history', (msg: any) => {
@@ -55,38 +60,53 @@ function Chat() {
     }
   }, [open]);
 
-  // T key shortcut: open chat + exit pointer lock
-  React.useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'KeyT') return;
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      e.preventDefault();
-      if (document.pointerLockElement) document.exitPointerLock();
-      setOpen(true);
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+  const closeChat = React.useCallback(() => {
+    openRef.current = false;
+    setOpen(false);
   }, []);
+
+  // T = toggle chat (priority 0); Escape = close chat (priority 100, beats MainMenu's priority 10)
+  // React.useEffect(() => {
+  //   const unsubEscape = KeyboardService.on('Escape', () => {
+  //     if (!openRef.current) return; // not open — don't consume, let lower handlers run
+  //     if (document.pointerLockElement) {
+  //       PointerLockService.suppressNextUnlock = true;
+  //     }
+  //     openRef.current = false;
+  //     setOpen(false);
+  //     return true; // consume — prevent MainMenu from seeing this Escape
+  //   }, 100);
+
+  //   const unsubT = KeyboardService.on('KeyT', (e) => {
+  //     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  //     e.preventDefault();
+  //     const next = !openRef.current;
+  //     openRef.current = next;
+  //     setOpen(next);
+  //   }, 0);
+
+  //   return () => { unsubEscape(); unsubT(); };
+  // }, []);
 
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed) return;
     WsService.sendChat(trimmed);
     setInput('');
+    closeChat();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     e.stopPropagation();
     if (e.key === 'Enter') handleSend();
-    if (e.key === 'Escape') inputRef.current?.blur();
   };
 
   return (
     <div className={`chat${open ? ' chat--open' : ''}`}>
       <button
         className="chat__toggle"
-        onClick={() => setOpen(v => !v)}
-        title={open ? 'Close chat' : 'Chat  [T]'}
+        onClick={() => open ? closeChat() : setOpen(true)}
+        title={open ? 'Close chat  [T]' : 'Chat  [T]'}
       >
         {open ? '✕' : '💬'}
         {!open && unread > 0 && (

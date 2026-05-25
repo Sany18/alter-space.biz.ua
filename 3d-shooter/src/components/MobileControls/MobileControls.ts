@@ -1,6 +1,8 @@
-import './MobileControls.scss';
+import { GlobalStateService } from '../../services/global-state/global-state.service';
 import Player from '../Player/Player';
 import { config } from '../Player/Player';
+
+import './MobileControls.scss';
 
 const JOYSTICK_MAX_OFFSET = 27; // max knob travel in px (base_radius - knob_radius)
 const DEAD_ZONE = 0.2;
@@ -62,6 +64,7 @@ export class MobileControls {
     this.menuBtn.className = 'mobile-controls__menu-btn';
     this.menuBtn.setAttribute('type', 'button');
     this.menuBtn.textContent = '☰';
+    this.menuBtn.addEventListener('click', this.onMenuTap);
 
     this.container.appendChild(this.lookArea);
     this.container.appendChild(this.joystickBase);
@@ -75,7 +78,6 @@ export class MobileControls {
     this.lookArea.addEventListener('touchstart', this.onLookStart, { passive: false });
     this.jumpBtn.addEventListener('touchstart', this.onJumpStart, { passive: false });
     this.jumpBtn.addEventListener('touchend', this.onJumpEnd);
-    this.menuBtn.addEventListener('touchstart', this.onMenuTap, { passive: false });
     document.addEventListener('touchmove', this.onTouchMove, { passive: false });
     document.addEventListener('touchend', this.onTouchEnd);
     document.addEventListener('touchcancel', this.onTouchEnd);
@@ -171,8 +173,7 @@ export class MobileControls {
 
   private onMenuTap = (e: TouchEvent) => {
     e.preventDefault();
-    const blocker = document.getElementById('blocker');
-    if (blocker) blocker.style.display = 'flex';
+    GlobalStateService.set('menuOpen', true);
   };
 
   // ── Shared move/end handlers ──────────────────────────────────
@@ -204,7 +205,6 @@ export class MobileControls {
     this.lookArea.removeEventListener('touchstart', this.onLookStart);
     this.jumpBtn.removeEventListener('touchstart', this.onJumpStart);
     this.jumpBtn.removeEventListener('touchend', this.onJumpEnd);
-    this.menuBtn.removeEventListener('touchstart', this.onMenuTap);
     document.removeEventListener('touchmove', this.onTouchMove);
     document.removeEventListener('touchend', this.onTouchEnd);
     document.removeEventListener('touchcancel', this.onTouchEnd);

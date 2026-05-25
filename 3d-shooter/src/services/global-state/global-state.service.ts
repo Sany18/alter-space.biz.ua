@@ -13,6 +13,7 @@ function _getOrCreatePlayerName(): string {
 }
 
 export class GlobalStateService {
+  // Initial state
   static state: any = {
     cannonDebuggerEnabled: _savedDebugSettings.cannonDebuggerEnabled ?? false,
     lightDebuggerEnabled: _savedDebugSettings.lightDebuggerEnabled ?? false,
@@ -20,8 +21,8 @@ export class GlobalStateService {
     thirdPerson: _savedDebugSettings.thirdPerson ?? false,
     shadowQuality: _savedGraphicsSettings.shadowQuality ?? 'high',
     playerName: _getOrCreatePlayerName(),
+    menuOpen: true,
   };
-  
   
   static loggerEnabled = false;
   static stateChanged = document.createElement('event');
@@ -44,6 +45,8 @@ export class GlobalStateService {
 
   static remove(key: string): void {
     if (this.loggerEnabled) console.log('remove', key);
+
+    this.stateChanged.dispatchEvent(new CustomEvent('stateChanged', { detail: this.state }));
 
     delete this.state[key];
   }
