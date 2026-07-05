@@ -40,7 +40,7 @@ export class GlobalStateService {
 
     this.stateChanged.dispatchEvent(new CustomEvent('stateChanged', { detail: this.state }));
 
-    this.state[key] = value;
+    this.state = { ...this.state, [key]: value };
   }
 
   static remove(key: string): void {
@@ -48,7 +48,8 @@ export class GlobalStateService {
 
     this.stateChanged.dispatchEvent(new CustomEvent('stateChanged', { detail: this.state }));
 
-    delete this.state[key];
+    const { [key]: _, ...rest } = this.state;
+    this.state = rest;
   }
 
   // React hook

@@ -5,4 +5,8 @@
   height: 100svh;
   cursor: default;
   z-index: 200; /* above mobile-controls (z-index: 100) */
+
+  @media (pointer: coarse) {
+    display: none;
+  }
 }

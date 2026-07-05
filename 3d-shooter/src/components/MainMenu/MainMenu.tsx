@@ -4,6 +4,7 @@ import * as ReactDOM from 'react-dom/client';
 import { PointerLockService } from '../../services/pointer-lock/pointer-lock.service';
 import { GlobalStateService } from '../../services/global-state/global-state.service';
 import { LocalStorageService } from '../../services/localstorage/localstorage.service';
+import { MobileControls } from '../MobileControls/MobileControls';
 
 import './MainMenu.scss';
 
@@ -18,6 +19,8 @@ function MainMenu() {
   const [nicknameInput, setNicknameInput] = React.useState<string>(globalState.playerName ?? '');
 
   React.useEffect(() => {
+    if (MobileControls.isTouchDevice()) return;
+
     const handleLockChange = (e: Event) => {
       const locked = (e as CustomEvent<boolean>).detail;
       setGlobalState(prev => ({ ...prev, menuOpen: !locked }));
@@ -58,6 +61,11 @@ function MainMenu() {
 
   const handlePauseMenu = (e?) => {
     e?.stopPropagation();
+
+    if (MobileControls.isTouchDevice()) {
+      setGlobalState({ ...globalState, menuOpen: false });
+      return;
+    }
 
     if (PointerLockService.locked()) {
       PointerLockService.exit();

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>revcDOS (server-fed)</title>
+    <style>
+        body { font-family: sans-serif; }
+        #controls { margin-bottom: 10px; }
+        iframe { width: 1280px; height: 720px; max-width: 100%; border: 0; }
+        iframe:fullscreen { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="fullscreenBtn">Fullscreen</button>
+        <button id="exportSaveBtn">Export save</button>
+        <button id="importSaveBtn">Import save</button>
+        <input type="file" id="importSaveInput" accept=".json" style="display:none">
+    </div>
+    <script>
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            document.getElementById('game-frame').requestFullscreen();
+        });
+
+        // Saves already persist automatically in the browser (Emscripten's IDBFS
+        // mount syncs to IndexedDB on every in-game save) - these buttons are just
+        // for backing up / transferring that save data as a portable file.
+        document.getElementById('exportSaveBtn').addEventListener('click', () => {
+            const iframe = document.getElementById('game-frame');
+            const listener = (event) => {
+                if (event.data && event.data.event === '>export-saves') {
+                    window.removeEventListener('message', listener);
+                    if (event.data.bundle.length === 0) {
+                        alert('No save data found yet - save your game in-game first.');
+                        return;
+                    }
+                    const blob = new Blob([JSON.stringify(event.data.bundle)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `revcdos-save-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            };
+            window.addEventListener('message', listener);
+            iframe.contentWindow.postMessage({ event: 'export-saves' }, '*');
+        });
+
+        document.getElementById('importSaveBtn').addEventListener('click', () => {
+            document.getElementById('importSaveInput').click();
+        });
+        document.getElementById('importSaveInput').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            event.target.value = '';
+            if (!file) return;
+            let bundle;
+            try {
+                bundle = JSON.parse(await file.text());
+            } catch (e) {
+                alert('That file is not a valid save export.');
+                return;
+            }
+            document.getElementById('game-frame').contentWindow.postMessage({ event: 'import-saves', bundle }, '*');
+            alert('Save imported. Reload the page to see it in-game.');
+        });
+
+        // Cap concurrent fetches - the game streams many assets on demand via
+        // getAsyncUrl, and firing them all unthrottled can blow past the browser's
+        // limit on simultaneous requests (net::ERR_INSUFFICIENT_RESOURCES).
+        const MAX_CONCURRENT_FETCHES = 16;
+        let activeFetches = 0;
+        const fetchQueue = [];
+        function runQueued() {
+            while (activeFetches < MAX_CONCURRENT_FETCHES && fetchQueue.length > 0) {
+                const next = fetchQueue.shift();
+                activeFetches++;
+                next();
+            }
+        }
+        function withFetchLimit(task) {
+            return new Promise((resolve, reject) => {
+                fetchQueue.push(() => {
+                    task().then(resolve, reject).finally(() => {
+                        activeFetches--;
+                        runQueued();
+                    });
+                });
+                runQueued();
+            });
+        }
+
+        // A single line in the upstream preload_files.list is missing a newline and
+        // merges two entries into one bogus path. It can never resolve to a real
+        // file, so skip the network round-trip entirely rather than 404 on it.
+        const KNOWN_BAD_PATHS = new Set([
+            'vc-assets/local/models/gta3.img/speeder.dffvc-assets/local/skins',
+        ]);
+
+        async function fetchBytes(path) {
+            if (KNOWN_BAD_PATHS.has(path)) return null;
+            return withFetchLimit(async () => {
+                try {
+                    const res = await fetch(path);
+                    if (!res.ok) return null;
+                    if (res.headers.get('X-Missing')) return null;
+                    return new Uint8Array(await res.arrayBuffer());
+                } catch (e) {
+                    // Network-level failure (e.g. server briefly unreachable) rather
+                    // than an HTTP error status - treat the same as "not found"
+                    // instead of letting it become an unhandled rejection.
+                    console.warn('fetch failed for', path, e);
+                    return null;
+                }
+            });
+        }
+
+        let reportedProgress = 0;
+        let currentFile = 0;
+        let initialFiles = [];
+        let preloadCache = new Map();
+        window.addEventListener('message', async (event) => {
+            const data = event.data;
+            if (data.event === 'module.initfs') {
+                const preloadFiles = await (await fetch("preload_files.list")).text();
+                // preload_files.list can contain duplicates, directory paths, and (rarely)
+                // corrupted/merged entries - fetch everything up front and keep only what
+                // actually resolves, mirroring how the picker-based host.html only ever
+                // forwarded paths that matched a real selected file.
+                const candidatePaths = Array.from(new Set(preloadFiles.split('\n')
+                    .map(line => line.trim().toLowerCase())
+                    .filter(line => line.length > 0 && line[0] !== '#')));
+
+                const fetched = await Promise.all(candidatePaths.map(async (path) => [path, await fetchBytes(path)]));
+                preloadCache = new Map(fetched.filter(([, bytes]) => bytes !== null));
+                initialFiles = Array.from(preloadCache.keys());
+
+                currentFile = -1;
+                event.source.postMessage({ event: '>module.initfs', files: initialFiles.length }, '*');
+            } else if (data.event === 'module.initfile') {
+                currentFile++;
+                const newProgress = Math.floor((currentFile / initialFiles.length) * 100);
+                if (newProgress > reportedProgress) {
+                    reportedProgress = newProgress;
+                    console.log(reportedProgress + "% " + currentFile + " of " + initialFiles.length);
+                }
+                if (currentFile < initialFiles.length) {
+                    const path = initialFiles[currentFile];
+                    const bytes = preloadCache.get(path);
+                    event.source.postMessage({
+                        event: '>module.initfile',
+                        path,
+                        data: bytes,
+                    }, '*', [bytes.buffer]);
+                } else {
+                    console.error('No more files to provide');
+                }
+            } else if (data.event === 'module.getasyncurl' && data.file) {
+                const bytes = await fetchBytes(data.file);
+                if (bytes) {
+                    event.source.postMessage({
+                        event: '>module.getasyncurl',
+                        file: data.file,
+                        data: bytes,
+                    }, '*', [bytes.buffer]);
+                } else {
+                    event.source.postMessage({
+                        event: '>module.getasyncurl',
+                        file: data.file,
+                    }, '*');
+                }
+            } else if (data.event === 'request-fullscreen') {
+                document.getElementById('game-frame').requestFullscreen().catch(() => {});
+            }
+        });
+    </script>
+    <iframe id="game-frame" src="index.html" allow="fullscreen" style="width: 1280px; height: 720px;"></iframe>
+</body>
+</html>
