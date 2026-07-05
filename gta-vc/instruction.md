@@ -61,7 +61,4 @@ Press `Ctrl+C` in the Terminal window running `bun run server.ts`.
 - Repeat page loads are fast: the compiled game data is cached by the browser
   essentially forever (it never changes once built), so only the first load pulls
   everything over the network.
-- If you ever need to regenerate `vc-assets` from raw game files (e.g. a
-  different language version), you'll need the `revcdos` source repo
-  (https://github.com/Carter54git/revcdos) and Docker — that's a separate, longer
-  process not included in this bundle.
+
