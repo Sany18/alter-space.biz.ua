@@ -21,3 +21,5 @@ rsync -av \
   root@${REMOTE_HOST}:/var/www/${DOMAIN}/gta-vc/vc-assets/
 
 echo "Deployed to $REMOTE_HOST"
+
+../purge-cloudflare.sh

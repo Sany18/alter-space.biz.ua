@@ -35,9 +35,7 @@ const textDecoder = new TextDecoder();
 (function () {
     const translations = {
         en: {
-            clickToPlayDemo: "Click to play demo",
             clickToPlayFull: "Click to play",
-            invalidKey: "invalid key",
             checking: "checking...",
             cloudSaves: "Cloud saves:",
             enabled: "enabled",
@@ -52,43 +50,39 @@ const textDecoder = new TextDecoder();
             downloading: "Downloading",
             enterKey: "enter your key",
             clickToContinue: "Click to continue...",
-            enterJsDosKey: "Enter js-dos key",
             portBy: "HTML5 port by:",
-            ruTranslate: "",
-            demoOffDisclaimer: "Due to the unexpectedly high popularity of the project, resulting in significant traffic costs, and in order to avoid any risk of the project being shut down due to rights holder claims, we have disabled the demo version. You can still run the full version by providing the original game resources.",
+            ukTranslate: "",
+            demoOffDisclaimer: "Nothing to see here, move along",
         },
-        ru: {
-            clickToPlayDemo: "Играть в демо версию",
-            clickToPlayFull: "Играть",
-            invalidKey: "неверный ключ",
-            checking: "проверка...",
-            cloudSaves: "Облачные сохранения:",
-            enabled: "включены",
-            disabled: "выключены",
-            playDemoText: "Вы можете играть в демо версию, или предоставить оригинальные файлы игры для полной версии.",
-            disclaimer: "ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ:",
-            disclaimerSources: "Эта игра основана на открытой версии GTA: Vice City. Она не является коммерческим изданием и не связана с Rockstar Games.",
-            disclaimerCheckbox: "Я владею оригинальной игрой",
-            disclaimerPrompt: "Вам потребуется приложить какой-либо файл из оригинальной игры для подтверждения владения оригинальной игрой.",
-            cantContinuePlaying: "Вы не можете продолжить игру в демо версии. Пожалуйста, предоставьте оригинальные файлы игры для продолжения игры.",
-            demoAlert: "Демо версия предназначена только для ознакомления с технологией игры. Все функции доступны, но вы не сможете продолжить игру по сюжету. Пожалуйста, предоставьте оригинальные файлы игры для запуска полной версии.",
-            downloading: "Загрузка",
-            enterKey: "введите ваш ключ",
-            clickToContinue: "Нажмите для продолжения...",
-            enterJsDosKey: "Введите ключ js-dos",
-            portBy: "Авторы HTML5 порта:",
-            ruTranslate: `
-<div class="translated-by">
-    <span>Слава Україні</span>
-</div>
-`,
+        uk: {
+            clickToPlayFull: "Грати",
+            checking: "перевірка...",
+            cloudSaves: "Хмарні збереження:",
+            enabled: "увімкнено",
+            disabled: "вимкнено",
+            playDemoText: "Ви можете грати в демоверсію або надати оригінальні файли гри для повної версії.",
+            disclaimer: "ВІДМОВА ВІД ВІДПОВІДАЛЬНОСТІ:",
+            disclaimerSources: "Ця гра заснована на відкритій версії GTA: Vice City. Вона не є комерційним виданням і не пов'язана з Rockstar Games.",
+            disclaimerCheckbox: "Я володію оригінальною грою",
+            disclaimerPrompt: "Вам потрібно буде додати якийсь файл з оригінальної гри для підтвердження володіння оригінальною грою.",
+            cantContinuePlaying: "Ви не можете продовжити гру в демоверсії. Будь ласка, надайте оригінальні файли гри для продовження гри.",
+            demoAlert: "Демоверсія призначена лише для ознайомлення з технологією гри. Усі функції доступні, але ви не зможете просуватися сюжетом. Будь ласка, надайте оригінальні файли гри для запуску повної версії.",
+            downloading: "Завантаження",
+            enterKey: "введіть ваш ключ",
+            clickToContinue: "Натисніть, щоб продовжити...",
+            portBy: "Автори HTML5-порту:",
+            ukTranslate: `
+                <div class="translated-by">
+                    <span>Люди для людей</span>
+                </div>
+            `,
             demoOffDisclaimer: "Русня соснула, от і все",
         },
     };
 
-    let currentLanguage = navigator.language.split("-")[0] === "ru" ? "ru" : "en";
-    if (params.get("lang") === "ru") {
-        currentLanguage = "ru";
+    let currentLanguage = navigator.language.split("-")[0] === "uk" ? "uk" : "en";
+    if (params.get("lang") === "uk") {
+        currentLanguage = "uk";
     }
     if (params.get("lang") === "en") {
         currentLanguage = "en";
@@ -402,7 +396,7 @@ async function loadGame() {
         tapTarget: document.querySelector('.touch-control.fireLeft'),
     }]);
 
-    // Save export/import, driven by the outer page (auto.html / host.html).
+    // Save export/import, driven by the outer page (auto.html).
     // Lives here (not top-level) so it can close over this run's local `Module`.
     const SAVES_ROOT = "/vc-assets/local/userfiles";
 
@@ -522,7 +516,7 @@ const cloudSavesLink = document.getElementById('cloud-saves-link');
 cloudSavesLink.textContent = t('cloudSaves');
 cloudSavesStatus.textContent = t('enterKey');
 const developedBy = document.querySelector('.developed-by');
-developedBy.innerHTML += t('ruTranslate');
+developedBy.innerHTML += t('ukTranslate');
 const portBy = document.getElementById('port-by');
 portBy.textContent = t('portBy');
 

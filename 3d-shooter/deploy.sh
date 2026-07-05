@@ -50,4 +50,6 @@ EOF
 
 echo "Deployed to $REMOTE_HOST"
 
+../purge-cloudflare.sh
+
 rm -rf dist

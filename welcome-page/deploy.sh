@@ -21,4 +21,6 @@ rsync -av \
 
 echo "Deployed to $REMOTE_HOST"
 
+../purge-cloudflare.sh
+
 rm -rf dist
