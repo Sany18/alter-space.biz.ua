@@ -330,7 +330,8 @@
             pointer-events: auto;
         }
 
-        #controls-menu button {
+        #controls-menu button,
+        #controls-menu a {
             appearance: none;
             border: 1px solid var(--btn-border);
             background: var(--btn-bg);
@@ -342,15 +343,20 @@
             border-radius: 6px;
             cursor: pointer;
             white-space: nowrap;
+            text-decoration: none;
+            text-align: center;
+            box-sizing: border-box;
             transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
         }
 
-        #controls-menu button:hover {
+        #controls-menu button:hover,
+        #controls-menu a:hover {
             background: var(--btn-bg-hover);
             border-color: var(--accent);
         }
 
-        #controls-menu button:active {
+        #controls-menu button:active,
+        #controls-menu a:active {
             transform: scale(0.96);
         }
 
@@ -422,6 +428,7 @@
             <button id="fullscreenBtn">Fullscreen</button>
             <button id="exportSaveBtn">Export save</button>
             <button id="importSaveBtn">Import save</button>
+            <a id="donateLink" href="https://donatello.to/hoxz" target="_blank" rel="noopener noreferrer">Donate 🍰</a>
         </div>
         <input type="file" id="importSaveInput" accept=".json" style="display:none">
     </div>
@@ -432,6 +439,15 @@
         </div>
     </div>
     <script>
+        // The compiled engine calls Emscripten's _emscripten_set_window_title
+        // (index.js) at some point during startup, which does a plain
+        // document.title = ... - overwriting our own <title>. Lock it instead
+        // of trying to catch/patch that specific WASM call site.
+        Object.defineProperty(document, 'title', {
+            get: () => 'GTA Vice City',
+            set: () => {},
+        });
+
         // The compiled game engine requests pointer lock on the canvas for any
         // click anywhere on the page (via its own internal event listener, not
         // something we can patch in game.js) - including clicks on our menu
@@ -517,6 +533,9 @@
         document.getElementById('importSaveBtn').addEventListener('click', () => {
             closeControlsMenu();
             document.getElementById('importSaveInput').click();
+        });
+        document.getElementById('donateLink').addEventListener('click', () => {
+            closeControlsMenu();
         });
         document.getElementById('importSaveInput').addEventListener('change', async (event) => {
             const file = event.target.files[0];

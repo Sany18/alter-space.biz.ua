@@ -206,6 +206,31 @@ async function loadGame() {
         }),
         mainCalled: async () => {
             try {
+                // Fix a bug in Emscripten's FS.unlink: it finds the target node via a
+                // case-insensitive hash lookup, but then deletes it from the parent
+                // directory's listing using the exact-case name from the path as
+                // typed - if that differs from the case the file actually has, the
+                // delete silently no-ops (wrong object key). A subsequent write then
+                // creates a separate, out-of-sync duplicate instead of truncating the
+                // real file. This is what broke save-slot overwrites: the game's own
+                // save code doesn't always request unlink with the same case the file
+                // was originally created with.
+                const originalUnlink = Module.FS.unlink.bind(Module.FS);
+                Module.FS.unlink = (path) => {
+                    try {
+                        const parent = Module.FS.lookupPath(path, { parent: true }).node;
+                        const name = path.split('/').pop();
+                        const node = Module.FS.lookupNode(parent, name);
+                        if (node.name !== name) {
+                            const fixedPath = path.slice(0, path.length - name.length) + node.name;
+                            return originalUnlink(fixedPath);
+                        }
+                    } catch (e) {
+                        // Fall through - e.g. genuinely doesn't exist, let the original call raise it
+                    }
+                    return originalUnlink(path);
+                };
+
                 Module.FS.mkdir("/vc-assets");
                 Module.FS.mkdir("/vc-assets/local");
 
