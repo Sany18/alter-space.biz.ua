@@ -2,7 +2,7 @@
 // so the browser never needs to be granted access to local files.
 const PORT = 8124;
 const BIN_ROOT = new URL("./revcdos-bin/", import.meta.url).pathname;
-const DATA_ROOT = new URL("./compiled-data/vc-assets/", import.meta.url).pathname;
+const DATA_ROOT = new URL("./vc-assets/", import.meta.url).pathname;
 
 Bun.serve({
     port: PORT,

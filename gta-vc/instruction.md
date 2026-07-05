@@ -10,7 +10,7 @@ just start one server and open a page.
 - `revcdos-bin/` — the revcDOS engine (WebAssembly build), plus `auto.html` (the
   page you'll actually use) and the legacy `host.html` (manual folder-picker
   fallback, not needed for normal use).
-- `compiled-data/vc-assets/` — your GTA: Vice City game data, already converted
+- `vc-assets/` — your GTA: Vice City game data, already converted
   into the format revcDOS expects.
 
 ## Requirements
@@ -57,16 +57,16 @@ Press `Ctrl+C` in the Terminal window running `bun run server.ts`.
 
 ## Notes
 
-- `compiled-data/vc-assets/local` is derived from your own purchased copy of
+- `vc-assets/local` is derived from your own purchased copy of
   Grand Theft Auto: Vice City — keep it private, don't redistribute it.
 - Repeat page loads are fast: the compiled game data is cached by the browser
   essentially forever (it never changes once built), so only the first load pulls
   everything over the network.
 - `host.html` (the old manual folder-picker page) is still present if you ever need
-  it, but requires re-selecting the `compiled-data/vc-assets` folder each visit
+  it, but requires re-selecting the `vc-assets` folder each visit
   (or, in Chrome/Edge only, a one-time permission re-grant) and isn't actively
   maintained — `auto.html` is the supported path.
-- If you ever need to regenerate `compiled-data` from raw game files (e.g. a
+- If you ever need to regenerate `vc-assets` from raw game files (e.g. a
   different language version), you'll need the `revcdos` source repo
   (https://github.com/Carter54git/revcdos) and Docker — that's a separate, longer
   process not included in this bundle.

@@ -79,11 +79,10 @@ const textDecoder = new TextDecoder();
             portBy: "Авторы HTML5 порта:",
             ruTranslate: `
 <div class="translated-by">
-    <span>Переведено на русский студией</span>
-    <a href="https://www.gamesvoice.ru/" target="_blank">GamesVoice</a>
+    <span>Слава Україні</span>
 </div>
 `,
-            demoOffDisclaimer: "В связи с неожиданно высокой популярностью проекта, как следствие — значительными расходами на трафик, а также во избежание рисков закрытия проекта из-за претензий правообладателей, мы отключили возможность запуска демо-версии. При этом вы по-прежнему можете запустить полную версию, предоставив оригинальные ресурсы.",
+            demoOffDisclaimer: "Русня соснула, от і все",
         },
     };
 
@@ -502,88 +501,20 @@ clickToPlay.addEventListener('click', (e) => {
 // Skip the "click to play" overlay and start loading immediately.
 startGame({ stopPropagation() {} });
 
-const savesMountPoint = "/vc-assets/local/userfiles";
-const savesFile = "vcsky.saves";
+// Local saves persist via IDBFS's own IndexedDB sync regardless of this
+// wrapper; these hooks only ever bridged to js-dos's cloud-key storage
+// (CloudSDK, removed - self-hosted saves use the Export/Import buttons and
+// IndexedDB directly instead), so both are now no-ops.
 wrapIDBFS(console.log).addListener({
-    onLoad: (_, mount) => {
-        if (mount.mountpoint !== savesMountPoint) {
-            return null;
-        }
-        const token = localStorage.getItem('vcsky.key');
-        if (token && token.length === 5) {
-            const promise = CloudSDK.pullFromStorage(token, savesFile);
-            promise.then((payload) => {
-                console.log('[IDBFS] onLoad', token, payload ? payload.length / 1024 : 0, 'kb');
-            });
-            return promise;
-        }
-        return null;
-    },
-    onSave: (getData, _, mount) => {
-        if (mount.mountpoint !== savesMountPoint) {
-            return;
-        }
-        const token = localStorage.getItem('vcsky.key');
-        if (token && token.length === 5) {
-            getData().then((payload) => {
-                if (payload.length > 0) {
-                    console.log('[IDBFS] onSave', token, payload.length / 1024, 'kb');
-                    return CloudSDK.pushToStorage(token, savesFile, payload);
-                }
-            });
-        }
-    },
+    onLoad: () => null,
+    onSave: () => {},
 });
 
 
-function updateToken(token) {
-    cloudSavesStatus.textContent = t('checking');
-    if (token.length === 5) {
-        CloudSDK.resolveToken(token).then((profile) => {
-            if (profile) {
-                console.log('[CloudSdk] resolveToken', profile);
-                localStorage.setItem('vcsky.key', profile.token);
-                if (profile.premium) {
-                    keyStatus.textContent = t('enabled');
-                    keyStatus.style.color = 'green';
-                    keyStatus.style.fontWeight = 'bold';
-                } else {
-                    keyStatus.textContent = t('disabled');
-                    keyStatus.style.color = 'red';
-                    keyStatus.style.fontWeight = 'bold';
-                }
-            } else {
-                keyStatus.textContent = t('invalidKey');
-                keyStatus.style.color = 'white';
-                keyStatus.style.fontWeight = 'normal';
-            }
-        });
-    } else {
-        cloudSavesStatus.textContent = t('enterKey');
-    }
-}
-
-const keyInput = document.querySelector('.jsdos-key-input');
-keyInput.setAttribute('placeholder', t("enterJsDosKey"));
-const keyStatus = document.querySelector('.jsdos-key-status');
-keyInput.addEventListener('paste', (e) => {
-    setTimeout(() => {
-        updateToken(e.target.value);
-    }, 100);
-});
-
-keyInput.addEventListener('keyup', (e) => {
-    updateToken(e.target.value);
-});
-
-if (localStorage.getItem('vcsky.key')) {
-    keyInput.value = localStorage.getItem('vcsky.key');
-    updateToken(keyInput.value);
-} else {
-    keyStatus.textContent = t('invalidKey');
-    keyStatus.style.color = 'shite';
-    keyStatus.style.fontWeight = 'normal';
-}
+// The js-dos cloud-key entry UI (CloudSDK.resolveToken) has been removed -
+// self-hosted saves use the Export/Import buttons and IndexedDB directly.
+// Its DOM elements (.jsdos-key-input etc.) stay unused in the markup since
+// the whole .start-container is hidden by startGame() before this ever runs.
 
 const clickToPlayButton = document.getElementById('click-to-play-button');
 clickToPlayButton.textContent = t('clickToPlayFull');
