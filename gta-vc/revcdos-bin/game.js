@@ -231,6 +231,30 @@ async function loadGame() {
                     return originalUnlink(path);
                 };
 
+                // Same class of bug in FS.rename: renaming onto an existing target whose
+                // case differs from the rename's destination path removes that target
+                // from the internal hash table but leaves it orphaned in the parent
+                // directory's listing, then adds the renamed file under the new name -
+                // two directory entries for what should be one file. This is the actual
+                // save-corruption path: games commonly write to a temp file and rename
+                // it over the target slot for crash-safety, and that's exactly where a
+                // case mismatch bites.
+                const originalRename = Module.FS.rename.bind(Module.FS);
+                Module.FS.rename = (oldPath, newPath) => {
+                    try {
+                        const parent = Module.FS.lookupPath(newPath, { parent: true }).node;
+                        const name = newPath.split('/').pop();
+                        const existing = Module.FS.lookupNode(parent, name);
+                        if (existing.name !== name) {
+                            const realPath = newPath.slice(0, newPath.length - name.length) + existing.name;
+                            Module.FS.unlink(realPath);
+                        }
+                    } catch (e) {
+                        // Fall through - e.g. no existing target at all, nothing to clean up
+                    }
+                    return originalRename(oldPath, newPath);
+                };
+
                 Module.FS.mkdir("/vc-assets");
                 Module.FS.mkdir("/vc-assets/local");
 
