@@ -1,0 +1,280 @@
+.FileViewer__container {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+}
+
+.FileViewer {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  flex-direction: column;
+  background: var(--bg-color-light);
+
+  pre {
+    margin: 0;
+    overflow: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  [contenteditable] {
+    outline: none;
+  }
+}
+
+.FileViewer__topBar {
+  width: 100%;
+  height: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.FileViewer__message {
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+
+  &.status {
+    color: var(--white-color);
+    background: #15161a;
+  }
+
+  &.success {
+    color: #10210e;
+    background: #a8cf7a;
+  }
+
+  &.info {
+    color: #0f1e29;
+    background: #c4d8e8;
+  }
+
+  &.warning {
+    color: #2e1808;
+    background: #e8a56c;
+  }
+}
+
+.FileViewer__bottomBar {
+  gap: 0.5rem;
+  color: var(--white-color);
+  display: flex;
+  position: relative;
+  padding: 0.25rem 0.5rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--second-bg-color);
+
+  .FileViewer__bottomBar__left {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .FileViewer__bottomBar__right {
+    gap: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    display: flex;
+  }
+
+  .button {
+    gap: 0.5rem;
+    display: flex;
+  }
+}
+
+.FileViewer__buttonHistory {
+  min-width: 5rem;
+}
+
+.FileViewer__historyPanel {
+  right: 0.5rem;
+  width: min(30rem, calc(100% - 1rem));
+  bottom: calc(100% + 0.5rem);
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.7rem;
+  z-index: var(--z-dropdown);
+  position: absolute;
+  border-radius: 0.6rem;
+  flex-direction: column;
+  border: 1px solid var(--bg-color-bright);
+  background: var(--bg-color-light);
+  box-shadow: 0 0.5rem 1.2rem #00000055;
+}
+
+.FileViewer__historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  span {
+    color: var(--comment-color);
+    font-size: 0.85rem;
+  }
+}
+
+.FileViewer__historySelect {
+  width: 100%;
+}
+
+.FileViewer__historyDetails {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--comment-color);
+  font-size: 0.85rem;
+}
+
+.FileViewer__historyActions {
+  gap: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .FileViewer__bottomBar {
+    gap: 0.35rem;
+    padding: 0.35rem;
+    align-items: flex-start;
+
+    .FileViewer__bottomBar__left {
+      width: 100%;
+      font-size: 0.8rem;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .FileViewer__bottomBar__right {
+      width: 100%;
+      gap: 0.35rem;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+
+      .button,
+      .FileViewer__buttonHistory,
+      .FileViewer__buttonSave {
+        width: 100%;
+        min-width: 0;
+        justify-content: center;
+      }
+    }
+  }
+
+  .FileViewer__historyPanel {
+    left: 0.35rem;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    width: auto;
+    z-index: var(--z-dropdown);
+    position: fixed;
+    max-height: 55vh;
+    overflow-y: auto;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .FileViewer__historyHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .FileViewer__historyActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    button {
+      width: 100%;
+      min-height: 2.15rem;
+    }
+  }
+}
+
+.FileViewer__fileIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.FileViewer__buttonCreateNote {
+  right: 1rem;
+  bottom: 1rem;
+  padding: 0.2rem;
+  position: absolute;
+}
+
+.FileViewer__closeFileButton {
+  right: 0;
+  margin: -0.5rem 0;
+}
+
+.FileViewer__googleDriveIcon {
+  color: var(--white-color);
+  width: 1rem;
+  height: 1rem;
+}
+
+.FileViewer__driveOnly {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.FileViewer__driveOnlyCard {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--bg-color-bright);
+  background: linear-gradient(145deg, var(--bg-color), var(--second-bg-color));
+  box-shadow: 0 0.5rem 1.5rem #00000030;
+
+  h3 {
+    margin: 0;
+    color: var(--white-color);
+    font-size: 1.05rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--comment-color);
+    line-height: 1.4;
+  }
+}
+
+.FileViewer__driveOnlyIcon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.FileViewer__driveOnlyMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--white-color);
+  font-size: 0.85rem;
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #0000002b;
+
+  span:last-child {
+    color: var(--comment-color);
+    text-align: right;
+  }
+}
+
+.FileViewer__driveOnlyButton {
+  width: fit-content;
+}
