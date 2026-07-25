@@ -7,6 +7,17 @@ use pnpm
 pnpm i
 pnpm start
 
+Create `.env` for local development:
+
+```sh
+cp .env.example .env
+```
+
+Deployment reads the same variables from `.env.prod`. Both real env files are
+ignored by Git; `.env.example` contains placeholders only. Because Vite embeds
+all `VITE_*` values into the client bundle, Firebase and Google browser API keys
+must be restricted by allowed domain and API in their respective consoles.
+
 # Styles
 Padding grid 0.25rem
 

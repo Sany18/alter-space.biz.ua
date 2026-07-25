@@ -54,19 +54,12 @@ export const isTokenExpired = (token?: StoredToken): boolean => {
   return Date.now() - tokenIssuedAt >= tokenTtlMs(token) - expiryBufferMs;
 };
 
-const firebaseProjectId =
-  import.meta.env.VITE_FIREBASE_PROJECT_ID ||
-  import.meta.env.VITE_GOOGLE_AUTH_DOMAIN?.split(".")[0];
 const firebaseApp = getApps().length
   ? getApp()
   : initializeApp({
-      // Firebase Auth and Drive/Picker can use separately restricted browser keys.
-      // The fallback preserves compatibility with projects whose single key allows both.
-      apiKey:
-        import.meta.env.VITE_FIREBASE_API_KEY ||
-        import.meta.env.VITE_GOOGLE_WEB_API_KEY,
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
       authDomain: import.meta.env.VITE_GOOGLE_AUTH_DOMAIN,
-      projectId: firebaseProjectId,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
       appId: import.meta.env.VITE_FIREBASE_APP_ID,
     });
 const firebaseAuth = getAuth(firebaseApp);

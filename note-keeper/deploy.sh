@@ -10,7 +10,7 @@ set -euo pipefail
 
 set -o allexport
 source ../.env      # REMOTE_HOST, DOMAIN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID
-source .env.prod    # VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_WEB_API_KEY, VITE_GOOGLE_AUTH_DOMAIN, VITE_VERSION
+source .env.prod    # Note Keeper VITE_* browser configuration; see .env.example
 set +o allexport
 
 echo "Deploying to $REMOTE_HOST"
