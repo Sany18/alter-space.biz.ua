@@ -31,11 +31,6 @@ declare global {
         Action: any;
         Feature: any;
       };
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: any) => any;
-        };
-      };
     };
     WebFont: any;
     initGapi: () => void;

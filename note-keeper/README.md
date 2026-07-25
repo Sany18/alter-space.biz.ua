@@ -12,17 +12,27 @@ Padding grid 0.25rem
 
 # Google APIs
 ### Login:
-Google Identity Services (GIS) OAuth 2.0 token model:
-https://developers.google.com/identity/oauth2/web/guides/use-token-model
+Firebase Authentication with `GoogleAuthProvider` and `signInWithRedirect`:
+https://firebase.google.com/docs/auth/web/google-signin
 
-The Drive access token flow is popup-based and is not FedCM. FedCM applies to
-Sign in with Google identity/ID-token flows, not to scoped Google Drive API
-authorization.
+The Firebase-hosted OAuth handler returns a Google access token with the
+requested Drive scopes. The token is used directly by the browser; the app has
+no authentication backend and does not use popups.
 
-The browser token model does not issue a refresh token. Replacement access
-tokens must be requested from a user-driven event. A fully background refresh
-would require the authorization-code model and a backend that stores the
-refresh token.
+Google access tokens are short-lived. When one expires, the app displays
+Reconnect and performs another full-page Firebase redirect from that explicit
+user action. Firebase persists the signed-in identity, but does not expose a
+Google refresh token to this browser-only app.
+
+Firebase console setup:
+
+- Enable Google under Authentication > Sign-in method.
+- Add `alter-space.biz.ua` under Authentication > Settings > Authorized domains.
+- Keep `https://custom-sun-439217-g6.firebaseapp.com/__/auth/handler` as an
+  authorized OAuth redirect URI.
+- Set `VITE_FIREBASE_API_KEY` to the Firebase web app API key. That key must
+  permit Identity Toolkit API calls from `https://alter-space.biz.ua/*`.
+- `VITE_GOOGLE_WEB_API_KEY` remains the separately restricted Drive/Picker key.
 
 ### Google Drive API
 Google Drive API v3

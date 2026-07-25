@@ -10,7 +10,7 @@ Note-Keeper is a React-based note-taking and file management app with Google Dri
 - **RS** — Remote Storage (Google Drive)
 - **LS** — Local Storage (browser localStorage)
 - **GD** — Google Drive
-- **GIS** — Google Identity Services
+- **Firebase Auth** — hosted Google sign-in and redirect handling
 
 ## Stack
 
@@ -69,18 +69,21 @@ NestJS modules with two domains:
 
 ### Authentication Flow
 
-1. Google Identity Services (GIS) script loads on app start
-2. OAuth 2.0 access token obtained via GIS's OAuth2 token model (`google.accounts.oauth2.initTokenClient` / `requestAccessToken`) — popup-based, **not** FedCM. FedCM only covers Sign In With Google's identity/ID-token flow, not scoped API authorization, so it isn't an option for the Drive access token this app needs
-3. Token (with its expiry) is stored in `localStorage`. Replacement tokens are requested from user gestures, Drive calls wait for a fresh token before dispatch, and a 401 forces a replacement rather than reusing the locally "fresh" rejected token — see `src/reactHooks/gis/googleAuth.hook.tsx`
-4. All Google Drive API calls use this token directly from the browser — there is no backend relaying requests
+1. Firebase Authentication initializes with local persistence
+2. `GoogleAuthProvider` requests the Drive scopes through `signInWithRedirect`; Firebase's hosted `/__/auth/handler` returns the browser to the app without a popup
+3. The returned Google OAuth access token and expiry time are stored in local state. When it expires or Drive returns 401, the app marks the session for an explicit redirect-based Reconnect
+4. All Google Drive API calls use this token directly from the browser — there is no backend, refresh-token storage, or request relay
 
 ## Environment Variables
 
 Frontend env vars are prefixed with `VITE_`. Key variables:
 ```
 VITE_GOOGLE_CLIENT_ID        # OAuth client ID
-VITE_GOOGLE_WEB_API_KEY      # Google API key
+VITE_GOOGLE_WEB_API_KEY      # Drive API / Picker browser key
 VITE_GOOGLE_AUTH_DOMAIN      # Firebase/auth domain
+VITE_FIREBASE_API_KEY        # Firebase web key with Identity Toolkit access
+VITE_FIREBASE_PROJECT_ID     # Optional; defaults from the auth domain
+VITE_FIREBASE_APP_ID         # Optional Firebase web app ID
 VITE_BASE_PATH               # URL base path (/ locally, /note-keeper/ on GitHub Pages)
 VITE_VERSION                 # Used to bust service worker cache — bump on deploy
 ```

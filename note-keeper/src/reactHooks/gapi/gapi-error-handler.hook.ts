@@ -28,11 +28,11 @@ export const useGapiErrorHandler = () => {
       log.error(`${source}:`, error);
     }
 
-    // Fire-and-forget safety net for call sites that don't implement their own
-    // retry-after-refresh; the CRUD layer's own 401 handling covers the common paths.
+    // Mark the Firebase session as requiring a redirect-based reconnect. There is no
+    // safe background refresh token in this server-free application.
     if (errorStatusCode === 401) {
       ensureFreshAccessToken({ forceRefresh: true }).catch(() => {
-        log.appEvent('GoogleAuth: background refresh triggered by a 401 failed.');
+        log.appEvent('GoogleAuth: Drive rejected the token; reconnect is required.');
       });
     }
 

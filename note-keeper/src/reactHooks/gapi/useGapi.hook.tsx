@@ -37,9 +37,8 @@ import { getGDRevisionContent } from "./googleDriveCRUD/getRevisionContent";
 
 let gapiCallbacks = [];
 
-// Every Drive operation goes through this gate. Besides avoiding a guaranteed 401
-// when the locally stored token is stale, it lets a user gesture start/join the GIS
-// token flow before the Drive request is dispatched.
+// Every Drive operation goes through this gate. An expired browser token is rejected
+// before dispatch so the UI can offer the Firebase redirect-based Reconnect action.
 const authorizeGapiFunction = (ensureFreshAccessToken, request) => async (...args) => {
   const accessToken = await ensureFreshAccessToken();
   window.gapi.client.setToken({ access_token: accessToken });
@@ -111,7 +110,7 @@ export const _useGapi = () => {
     }
   }, [gapiInitialized, gapiCallbacks]);
 
-  // Forward GIS access token to gapi client on token change
+  // Forward the Google OAuth token returned by Firebase to gapi.
   useEffect(() => {
     const token = currentUser.googleAccessTokenToGD?.access_token;
     if (gapiInitialized && token) {

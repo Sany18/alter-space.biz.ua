@@ -65,8 +65,8 @@ export const Privacy: React.FC = () => {
         </h3>
 
         <p>
-          We do not store any personal data on our servers.
-          All user data is stored locally in your browser. If you wish to delete your data, you can do so by clearing your browser's local storage or click LOG OUT.
+          We do not operate an application backend or store your notes on our servers.
+          Firebase Authentication stores the minimum account and session information needed to keep you signed in, while app state is stored locally in your browser. If you wish to delete local app data, clear your browser's local storage or click LOG OUT.
           Log out automatically deletes all data from your browser.
           We do not have access to delete your data on your behalf.
         </p>
