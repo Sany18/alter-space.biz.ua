@@ -33,6 +33,50 @@
   flex-direction: column;
 }
 
+.FileViewer__tabs {
+  flex: 1;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #15161a;
+}
+
+.FileViewer__tab {
+  gap: 0.35rem;
+  color: var(--comment-color);
+  border: 0;
+  display: flex;
+  padding: 0 0.5rem;
+  min-width: 7rem;
+  max-width: 15rem;
+  align-items: center;
+  border-radius: 0;
+  background: transparent;
+  border-right: 1px solid var(--bg-color-light);
+
+  &.active {
+    color: var(--white-color);
+    background: var(--bg-color-light);
+  }
+
+  > span:not(.FileViewer__tabClose) {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.FileViewer__tabClose {
+  display: flex;
+  margin-left: auto;
+  border-radius: 50%;
+  align-items: center;
+
+  &:hover {
+    background: var(--bg-color-bright);
+  }
+}
+
 .FileViewer__message {
   gap: 0.5rem;
   flex: 1;

@@ -56,8 +56,9 @@ export const ContextMenu: FC<Props> = memo(({ contextEvent }) => {
 
     if (!elementId) return;
 
-    return findElementInTree(fileTree, elementId);
-  }, [fileTree, currentListItemEl]);
+    return findElementInTree(fileTree, elementId)
+      || (filesState.favoriteFiles || []).find(file => file.id === elementId);
+  }, [fileTree, filesState.favoriteFiles, currentListItemEl]);
 
   const closestParentFolder = useMemo(() => getClosestParentFolder(fileTree, fileFromList), [fileTree, fileFromList]);
   const isNotDraggableElement = useMemo(() => fileFromList?.draggable === false, [currentListItemEl]);
@@ -69,12 +70,32 @@ export const ContextMenu: FC<Props> = memo(({ contextEvent }) => {
     const actionFileIds = shouldUseSelection ? selectedFileIds : [fileFromList.id];
 
     return actionFileIds
-      .map(fileId => findElementInTree(fileTree, fileId))
+      .map(fileId =>
+        findElementInTree(fileTree, fileId)
+        || (filesState.favoriteFiles || []).find(file => file.id === fileId)
+      )
       .filter(Boolean)
       .filter(file => file.draggable !== false);
-  }, [fileFromList, filesState.selectedFileIds, fileTree]);
+  }, [fileFromList, filesState.selectedFileIds, filesState.favoriteFiles, fileTree]);
 
   const moveFileToMode = drawerState.mode === LeftDrawerModes.FileMoveTo;
+  const selectedFilesAreFavorites = selectedFiles.length > 0 && selectedFiles.every(
+    file => (filesState.favoriteFiles || []).some(favorite => favorite.id === file.id),
+  );
+
+  const toggleFavorite = useCallback(() => {
+    const favoriteFiles = filesState.favoriteFiles || [];
+    const selectedIds = new Set(selectedFiles.map(file => file.id));
+    const nextFavorites = selectedFilesAreFavorites
+      ? favoriteFiles.filter(file => !selectedIds.has(file.id))
+      : [
+          ...favoriteFiles.filter(file => !selectedIds.has(file.id)),
+          ...selectedFiles.map(file => new File({ ...file, children: undefined, folderOpen: false })),
+        ];
+
+    setFilesState({ favoriteFiles: nextFavorites });
+    toggleMenu(false);
+  }, [filesState.favoriteFiles, selectedFiles, selectedFilesAreFavorites, setFilesState, toggleMenu]);
 
   // Means only the new contextEvent call will show context menu
   useEffect(() => {
@@ -271,11 +292,24 @@ export const ContextMenu: FC<Props> = memo(({ contextEvent }) => {
           setTree(nextTree);
 
           const deletedFileIds = selectedFiles.map(file => file.id);
+          const remainingOpenFiles = (filesState.openFiles || [])
+            .filter(file => !deletedFileIds.includes(file.id));
+          const remainingFavorites = (filesState.favoriteFiles || [])
+            .filter(file => !deletedFileIds.includes(file.id));
 
           if (deletedFileIds.includes(activeFileInfo?.fileInfoFromRemoteStorage?.id) || deletedFileIds.includes(activeFileModel?.id)) {
             resetCurrentFileInfo();
             resetCurrentFileContent();
-            setFilesState({ activeFileModel: null });
+            setFilesState({
+              activeFileModel: null,
+              openFiles: remainingOpenFiles,
+              favoriteFiles: remainingFavorites,
+            });
+          } else {
+            setFilesState({
+              openFiles: remainingOpenFiles,
+              favoriteFiles: remainingFavorites,
+            });
           }
 
           setFilesState({ selectedFileIds: [], lastSelectedFileId: null });
@@ -287,7 +321,7 @@ export const ContextMenu: FC<Props> = memo(({ contextEvent }) => {
           setFilesState({ inProgress: false });
         });
     }, 0);
-  }, [fileTree, activeFileInfo, activeFileModel, fileFromList, setFilesState, selectedFiles]);
+  }, [fileTree, activeFileInfo, activeFileModel, fileFromList, filesState.openFiles, filesState.favoriteFiles, setFilesState, selectedFiles]);
 
   const onUploadFilesToFolder = useCallback(() => {
     toggleMenu(false);
@@ -455,6 +489,13 @@ export const ContextMenu: FC<Props> = memo(({ contextEvent }) => {
             className="ContextMenu__item item">
             Delete
             <Icon>delete</Icon>
+          </div>
+
+          <div
+            onClick={toggleFavorite}
+            className="ContextMenu__item item">
+            {selectedFilesAreFavorites ? 'Remove from favourites' : 'Add to favourites'}
+            <Icon>{selectedFilesAreFavorites ? 'star' : 'star_outline'}</Icon>
           </div>
 
           <div className='ContextMenu__divider-horizontal'></div>

@@ -50,10 +50,11 @@ type GDRevision = {
 };
 
 export const FileViewer: React.FC<Props> = () => {
-  const [, setFilesState] = useRecoilState(explorerSelector);
+  const [filesState, setFilesState] = useRecoilState(explorerSelector);
   const { setExplorerInProgress, setTree } = useExplorer();
   const {
     activeFileModel,
+    openFiles,
     setActiveFileModel,
     activeFileInfo,
     setActiveFileInfo,
@@ -86,6 +87,14 @@ export const FileViewer: React.FC<Props> = () => {
   const [fileRevisions, setFileRevisions] = useState<GDRevision[]>([]);
   const [selectedRevisionId, setSelectedRevisionId] = useState<string>(null);
 
+  // Migrate sessions saved before multi-tab support by turning the restored
+  // active file into the first tab.
+  useEffect(() => {
+    if (activeFileModel && !(filesState.openFiles || []).length) {
+      setFilesState({ openFiles: [activeFileModel] });
+    }
+  }, [activeFileModel, filesState.openFiles, setFilesState]);
+
   // Re-open the active file after re-login if it has an error or its content is missing
   useEffect(() => {
     if (!currentUser.loggedIn || !gapiInitialized || !activeFileModel) return;
@@ -105,16 +114,52 @@ export const FileViewer: React.FC<Props> = () => {
   const canSave = currentUser?.loggedIn && activeFileInfo.isFileChangedLocaly && !activeFileInfo?.isFileSavedToRemoteStorage;
   const canUseRevisionHistory = activeFileInfo?.viewType === ViewerType.TEXT || activeFileInfo?.viewType === ViewerType.PASSWORD;
 
-  const closeFile = () => {
-    if (!activeFileInfo?.isFileSavedToRemoteStorage && !activeFileInfo?.isFileSavingToRemoteStorage) {
+  const closeFile = (fileId = activeFileModel?.id) => {
+    const isActiveTab = fileId === activeFileModel?.id;
+
+    if (
+      isActiveTab &&
+      !activeFileInfo?.isFileSavedToRemoteStorage &&
+      !activeFileInfo?.isFileSavingToRemoteStorage
+    ) {
       const confirmClose = window.confirm('The file is not saved. Close anyway?');
 
       if (!confirmClose) return;
     }
 
+    const currentOpenFiles = filesState.openFiles || [];
+    const closingIndex = currentOpenFiles.findIndex(file => file.id === fileId);
+    const remainingFiles = currentOpenFiles.filter(file => file.id !== fileId);
+
+    if (!isActiveTab) {
+      setFilesState({ openFiles: remainingFiles });
+      return;
+    }
+
     setActiveFileInfo(null);
-    setActiveFileModel(null);
+    setActiveFileContent(null);
+
+    const nextFile = remainingFiles[Math.min(closingIndex, remainingFiles.length - 1)];
+    if (nextFile) {
+      setActiveFileModel(nextFile);
+      setFilesState({ openFiles: remainingFiles });
+      loadFileFromRS(nextFile);
+    } else {
+      setActiveFileModel(null);
+      setFilesState({ openFiles: [] });
+    }
   }
+
+  const activateTab = (file: File) => {
+    if (file.id === activeFileModel?.id) return;
+
+    if (!activeFileInfo?.isFileSavedToRemoteStorage) {
+      appEvents.onSaveToGoogleDrive.emit();
+    }
+
+    setActiveFileModel(file);
+    loadFileFromRS(file);
+  };
 
   const getAccessToFile = async () => {
     try {
@@ -461,7 +506,41 @@ export const FileViewer: React.FC<Props> = () => {
       className={`FileViewer__container${viewerZone.isActive ? ' zone--active' : ''}`}
       onClick={() => { viewerZone.activate(); deselectExplorerFiles(); }}>
       <div className="FileViewer__topBar">
-        {message &&
+        {currentUser.loggedIn && !currentUser.needsReauth && activeFileModel && openFiles.length > 0
+          ? <div className="FileViewer__tabs">
+              {openFiles.map(file =>
+                <button
+                  key={file.id}
+                  title={file.name}
+                  onClick={() => activateTab(file)}
+                  className={`FileViewer__tab ${file.id === activeFileModel.id ? 'active' : ''}`}>
+                  <Img
+                    src={file.iconLink}
+                    alt=""
+                    className="FileViewer__fileIcon" />
+                  <span>{file.name}</span>
+                  {file.id === activeFileModel.id &&
+                    !activeFileInfo?.isFileSavedToRemoteStorage &&
+                    !activeFileInfo?.isFileSavingToRemoteStorage &&
+                    <span title="Unsaved changes">●</span>
+                  }
+                  {file.id === activeFileModel.id && activeFileInfo?.isFileSavingToRemoteStorage &&
+                    <Spinner size="0.8rem" />
+                  }
+                  <span
+                    role="button"
+                    aria-label={`Close ${file.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      closeFile(file.id);
+                    }}
+                    className="FileViewer__tabClose">
+                    <Icon size="1rem">close</Icon>
+                  </span>
+                </button>
+              )}
+            </div>
+          : message &&
           <div className={`FileViewer__message ${message.type}`}>
             <b>{message.title}</b>
             {message.messageContent}

@@ -14,8 +14,17 @@ export const _useActiveFile = () => {
   const [activeFileContent, setActiveFileContent] = useRecoilState(activeFileContentSelector);
 
   const setActiveFileModel = useCallback((file: File) => {
-    setActiveFilesState({ activeFileModel: file ? new File(file) : null });
-  }, [setActiveFilesState]);
+    const activeFileModel = file ? new File(file) : null;
+    const openFiles = activeFileModel
+      ? (activeFilesState.openFiles || []).some(openFile => openFile.id === activeFileModel.id)
+        ? (activeFilesState.openFiles || []).map(openFile =>
+            openFile.id === activeFileModel.id ? activeFileModel : openFile
+          )
+        : [...(activeFilesState.openFiles || []), activeFileModel]
+      : activeFilesState.openFiles || [];
+
+    setActiveFilesState({ activeFileModel, openFiles });
+  }, [activeFilesState.openFiles, setActiveFilesState]);
 
   return {
     activeFileInfo,
@@ -23,6 +32,7 @@ export const _useActiveFile = () => {
     activeFileContent,
     setActiveFileContent,
     activeFileModel: activeFilesState.activeFileModel,
+    openFiles: activeFilesState.openFiles || [],
     setActiveFileModel,
   }
 };

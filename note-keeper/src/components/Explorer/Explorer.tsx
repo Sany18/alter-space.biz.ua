@@ -682,6 +682,32 @@ export const Explorer: React.FC<Props> = () => {
           onListItemClick={handleListItemClick} />)
         }
 
+        {(filesState.favoriteFiles || []).length > 0 &&
+          <div className="LeftDrawer__favorites">
+            <button
+              className="LeftDrawer__favoritesTitle"
+              onClick={() => setFilesState({ favoritesOpen: !filesState.favoritesOpen })}>
+              <Icon>{filesState.favoritesOpen ? 'expand_more' : 'chevron_right'}</Icon>
+              <Icon>star</Icon>
+              Favourites
+              <span>{filesState.favoriteFiles.length}</span>
+            </button>
+
+            {filesState.favoritesOpen &&
+              <div className="LeftDrawer__favoritesList">
+                {filesState.favoriteFiles.map((favorite) => {
+                  const currentFile = getFileFromTreeById(favorite.id) || favorite;
+                  return <ListItem
+                    key={favorite.id}
+                    fileFromList={currentFile}
+                    selectedFileIds={filesState.selectedFileIds}
+                    onListItemClick={handleListItemClick} />;
+                })}
+              </div>
+            }
+          </div>
+        }
+
         <div className='LeftDrawer__bottom'>
         </div>
       </div>
