@@ -20,20 +20,22 @@ const getUserDefaultState = (): UserState => ({
 
 type StoredToken = { receivedAt?: string; expires_in?: number } | null | undefined;
 
+export type EnsureFreshAccessTokenOptions = {
+  forceRefresh?: boolean;
+};
+
 type PendingRefresh = {
   promise: Promise<string>;
   resolve: (token: string) => void;
   reject: (error: any) => void;
   watchdogId?: ReturnType<typeof setTimeout>;
-  // Whether the token was already past its real (non-buffered) expiry when this
-  // attempt started — distinguishes "session was already dead" from "a live session
-  // hit a transient hiccup", which changes how quickly we surface a reconnect prompt.
-  tokenWasHardExpiredAtAttempt: boolean;
+  // True when the current token is expired or a 401 already proved it invalid.
+  // A failed replacement attempt must then surface the reconnect action immediately.
+  shouldRequireReauthOnFailure: boolean;
 };
 
 const defaultExpiresInSec = 3599; // GIS access tokens are normally valid for ~1h
 const expiryBufferMs = 5 * 60 * 1000; // treat the token as due for renewal 5 min early
-const proactiveCheckIntervalMs = 60 * 1000; // how often to check for staleness while idle
 const baseBackoffMs = 5000;
 const maxBackoffMs = 5 * 60 * 1000;
 const minFailureWindowBeforeReauthMs = 2 * 60 * 1000; // keep retrying quietly for at least this long
@@ -101,6 +103,13 @@ const _useGoogleAuth = () => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
 
+  const persistCurrentUser = useCallback((user: Partial<UserState>) => {
+    // Keep imperative callers in sync immediately. Waiting for the React effect here
+    // can start a second refresh in the small gap after the first refresh resolves.
+    currentUserRef.current = user;
+    setItem(LocalStorageKeys.CURRENT_USER, user);
+  }, [setItem]);
+
   // Purely a first-load gate now — routine background token refreshes must never
   // make consumers (e.g. the file viewer) treat the app as "still initializing".
   const isAuthInitializing = !googleAuthReady;
@@ -111,7 +120,7 @@ const _useGoogleAuth = () => {
   // we even attempted (e.g. the tab was asleep for hours), there's no live session left
   // to protect from disruption, so this surfaces the reconnect prompt on the very first
   // failure instead of leaving the user looking at an app with no data for 2 minutes.
-  const recordSilentFailure = useCallback((tokenWasHardExpiredAtAttempt: boolean) => {
+  const recordSilentFailure = useCallback((shouldRequireReauthOnFailure: boolean) => {
     const refreshState = silentRefreshRef.current;
     refreshState.consecutiveFailures += 1;
     if (!refreshState.firstFailureAt) refreshState.firstFailureAt = Date.now();
@@ -123,35 +132,61 @@ const _useGoogleAuth = () => {
     const storedUser = currentUserRef.current || getUserDefaultState();
     const tokenIsHardExpiredNow = isTokenHardExpired(storedUser.googleAccessTokenToGD);
 
-    const shouldSurfaceReconnect = tokenIsHardExpiredNow
-      && (tokenWasHardExpiredAtAttempt || failingForMs >= minFailureWindowBeforeReauthMs);
+    const shouldSurfaceReconnect = shouldRequireReauthOnFailure
+      || (tokenIsHardExpiredNow && failingForMs >= minFailureWindowBeforeReauthMs);
 
     if (shouldSurfaceReconnect && !storedUser.needsReauth) {
-      setItem(LocalStorageKeys.CURRENT_USER, { ...storedUser, needsReauth: true });
+      persistCurrentUser({ ...storedUser, needsReauth: true });
     }
-  }, [setItem]);
+  }, [persistCurrentUser]);
 
   useEffect(() => {
-    const initTokenCallback = (tokenResponse) => {
+    const finishFailedTokenRequest = (error: any, isOAuthError: boolean) => {
       const refreshState = silentRefreshRef.current;
       const pending = refreshState.pending;
       refreshState.pending = null;
       refreshState.inProgress = false;
+      refreshState.lastRequestedState = null;
       if (pending?.watchdogId) clearTimeout(pending.watchdogId);
 
       const wasGesture = refreshState.lastAttemptWasGesture;
       refreshState.lastAttemptWasGesture = false;
 
+      log.appEvent(
+        isOAuthError
+          ? 'GoogleAuth: Token request returned an error'
+          : 'GoogleAuth: Token popup failed',
+        error,
+      );
+
+      // A cancelled/failed explicit login or scope request is not a signal about
+      // whether a background refresh can succeed.
+      if (!wasGesture) {
+        recordSilentFailure(!!pending?.shouldRequireReauthOnFailure);
+      }
+
+      const currentToken = currentUserRef.current?.googleAccessTokenToGD;
+      const canUseExistingToken = pending
+        && !pending.shouldRequireReauthOnFailure
+        && currentToken?.access_token
+        && !isTokenHardExpired(currentToken);
+
+      if (canUseExistingToken) {
+        // Refreshes start inside the early-expiry buffer. If the popup is blocked or
+        // closed while the old token is still genuinely valid, let the action proceed
+        // with it and retry renewal on a later gesture.
+        pending.resolve(currentToken.access_token);
+      } else {
+        pending?.reject(error);
+      }
+    };
+
+    const initTokenCallback = (tokenResponse) => {
+      const refreshState = silentRefreshRef.current;
+      const pending = refreshState.pending;
+
       if (tokenResponse?.error) {
-        log.appEvent('GoogleAuth: Token request returned an error', tokenResponse);
-
-        // A cancelled/failed gesture-triggered request (login, additional-scopes) is not
-        // a signal about the health of silent background refresh — don't let it feed backoff.
-        if (!wasGesture) {
-          recordSilentFailure(!!pending?.tokenWasHardExpiredAtAttempt);
-        }
-
-        pending?.reject(tokenResponse);
+        finishFailedTokenRequest(tokenResponse, true);
         return;
       }
 
@@ -161,7 +196,12 @@ const _useGoogleAuth = () => {
       const expectedState = refreshState.lastRequestedState;
       refreshState.lastRequestedState = null;
 
-      if (expectedState && tokenResponse.state !== expectedState) {
+      if (!expectedState || tokenResponse.state !== expectedState) {
+        refreshState.pending = null;
+        refreshState.inProgress = false;
+        refreshState.lastRequestedState = null;
+        refreshState.lastAttemptWasGesture = false;
+        if (pending?.watchdogId) clearTimeout(pending.watchdogId);
         log.error('GoogleAuth: OAuth response state did not match the request; discarding it', {
           expectedState,
           receivedState: tokenResponse.state,
@@ -170,6 +210,10 @@ const _useGoogleAuth = () => {
         return;
       }
 
+      refreshState.pending = null;
+      refreshState.inProgress = false;
+      refreshState.lastAttemptWasGesture = false;
+      if (pending?.watchdogId) clearTimeout(pending.watchdogId);
       refreshState.consecutiveFailures = 0;
       refreshState.firstFailureAt = 0;
       refreshState.nextAllowedAttemptAt = 0;
@@ -188,8 +232,9 @@ const _useGoogleAuth = () => {
           .filter(Boolean),
       };
 
-      setItem(LocalStorageKeys.CURRENT_USER, nextUser);
-      log.appEvent('GoogleAuth: Access token received', nextUser);
+      persistCurrentUser(nextUser);
+      // Never include the bearer token in application logs.
+      log.appEvent('GoogleAuth: Access token received');
       pending?.resolve(tokenResponse.access_token);
     };
 
@@ -198,8 +243,8 @@ const _useGoogleAuth = () => {
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
         scope: minimalGDscopes.join(' '),
         callback: initTokenCallback,
+        error_callback: (error) => finishFailedTokenRequest(error, false),
         include_granted_scopes: true,
-        enable_granular_consent: true,
       });
 
       setGoogleAuthReady(true);
@@ -210,15 +255,17 @@ const _useGoogleAuth = () => {
     script.async = true;
     script.onload = initGoogleAuth;
     document.body.appendChild(script);
-  }, []);
+  }, [persistCurrentUser, recordSilentFailure]);
 
   // Returns the current access token if still fresh, otherwise triggers (or joins an
   // already in-flight) silent refresh and resolves once a new token is obtained.
   // Concurrent callers coalesce onto a single request instead of each opening a popup.
-  const ensureFreshAccessToken = useCallback((): Promise<string> => {
+  const ensureFreshAccessToken = useCallback((
+    options: EnsureFreshAccessTokenOptions = {},
+  ): Promise<string> => {
     const token = currentUserRef.current?.googleAccessTokenToGD;
 
-    if (token?.access_token && !isTokenExpired(token)) {
+    if (!options.forceRefresh && token?.access_token && !isTokenExpired(token)) {
       return Promise.resolve(token.access_token);
     }
 
@@ -252,77 +299,69 @@ const _useGoogleAuth = () => {
       promise,
       resolve: resolvePending,
       reject: rejectPending,
-      tokenWasHardExpiredAtAttempt: isTokenHardExpired(token),
+      shouldRequireReauthOnFailure: !!options.forceRefresh || isTokenHardExpired(token),
     };
     refreshState.pending = pendingEntry;
     refreshState.inProgress = true;
     refreshState.lastAttemptAt = Date.now();
     refreshState.lastRequestedState = generateOAuthState();
 
-    googleSignInRef.current.requestAccessToken({ prompt: 'none', state: refreshState.lastRequestedState });
+    try {
+      googleSignInRef.current.requestAccessToken({
+        prompt: 'none',
+        state: refreshState.lastRequestedState,
+      });
+    } catch (error) {
+      refreshState.pending = null;
+      refreshState.inProgress = false;
+      refreshState.lastRequestedState = null;
+      recordSilentFailure(pendingEntry.shouldRequireReauthOnFailure);
+
+      if (!pendingEntry.shouldRequireReauthOnFailure && !isTokenHardExpired(token)) {
+        pendingEntry.resolve(token.access_token);
+      } else {
+        pendingEntry.reject(error);
+      }
+      return promise;
+    }
 
     pendingEntry.watchdogId = setTimeout(() => {
       if (refreshState.pending !== pendingEntry) return;
       refreshState.pending = null;
       refreshState.inProgress = false;
-      recordSilentFailure(pendingEntry.tokenWasHardExpiredAtAttempt);
-      pendingEntry.reject(new Error('GoogleAuth: token refresh timed out'));
+      refreshState.lastRequestedState = null;
+      recordSilentFailure(pendingEntry.shouldRequireReauthOnFailure);
+
+      if (!pendingEntry.shouldRequireReauthOnFailure && !isTokenHardExpired(token)) {
+        pendingEntry.resolve(token.access_token);
+      } else {
+        pendingEntry.reject(new Error('GoogleAuth: token refresh timed out'));
+      }
     }, refreshWatchdogMs);
 
     return promise;
   }, [recordSilentFailure]);
 
-  // Proactively keeps the token fresh while the app is open: a recurring check plus an
-  // immediate re-check whenever the tab regains visibility/focus (background tabs throttle
-  // timers, so the visibility/focus listeners are what catch a session up after being away).
-  // The effect itself deliberately does not depend on the token/needsReauth — it keeps
-  // running so it's ready to resume the moment needsReauth clears (e.g. after the user
-  // reconnects) — but each individual attempt below does skip while needsReauth is set,
-  // since a silent (non-gesture) attempt has no real chance of succeeding once we already
-  // know the session is dead; only a real user gesture can still open the popup at that point.
+  // GIS's browser token model requires replacement tokens to be requested from a
+  // user-driven event. Start the refresh in capture phase so the action's own handler
+  // can join the same pending promise before it dispatches a Drive request.
   useEffect(() => {
     if (!googleAuthReady || !currentUser.loggedIn) return;
 
-    const attemptIfStale = () => {
-      const user = currentUserRef.current;
-      const token = user?.googleAccessTokenToGD;
-      if (!token?.access_token || !isTokenExpired(token)) return;
-      if (user?.needsReauth) return;
-      // A refresh popup opened from a hidden tab is very likely to be blocked by the
-      // browser; skip it here and let the visibility/focus listener retry once shown again.
-      if (document.visibilityState !== 'visible') return;
+    const attemptOnGesture = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-google-auth-action]')) return;
 
-      ensureFreshAccessToken().catch(() => {});
-    };
-
-    // Code running synchronously inside a real click/keypress counts as a genuine user
-    // gesture to the browser, unlike the timer/visibility checks above — so a refresh
-    // attempted here has a real chance of opening its popup even when those keep getting
-    // blocked, including once needsReauth is already set (a click can still recover a
-    // session that a background timer never could). Any click/keydown anywhere in the
-    // app is treated as an opportunity; ensureFreshAccessToken's own backoff and pending-
-    // request coalescing keep this from attempting anything on every single keystroke.
-    const attemptOnGesture = () => {
       const token = currentUserRef.current?.googleAccessTokenToGD;
       if (!token?.access_token || !isTokenExpired(token)) return;
 
       ensureFreshAccessToken().catch(() => {});
     };
 
-    attemptIfStale();
-
-    const intervalId = setInterval(attemptIfStale, proactiveCheckIntervalMs);
-    document.addEventListener('visibilitychange', attemptIfStale);
-    window.addEventListener('focus', attemptIfStale);
-    // Capture phase so this still runs even if some component's click/keydown handler
-    // calls stopPropagation() during the (more common) bubbling phase.
     document.addEventListener('click', attemptOnGesture, { capture: true });
     document.addEventListener('keydown', attemptOnGesture, { capture: true });
 
     return () => {
-      clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', attemptIfStale);
-      window.removeEventListener('focus', attemptIfStale);
       document.removeEventListener('click', attemptOnGesture, { capture: true });
       document.removeEventListener('keydown', attemptOnGesture, { capture: true });
     };
@@ -331,10 +370,14 @@ const _useGoogleAuth = () => {
   const requestAdditionalScopes = useCallback(() => {
     if (googleSignInRef.current) {
       const refreshState = silentRefreshRef.current;
+      if (refreshState.pending) return;
+
       refreshState.lastAttemptWasGesture = true;
       refreshState.lastRequestedState = generateOAuthState();
       googleSignInRef.current.requestAccessToken({
-        prompt: 'none',
+        // This action requests a scope the user may not have approved yet, so a
+        // no-UI request cannot work. It is invoked directly from the permission button.
+        prompt: 'consent',
         scope: AllGDscopes.join(' '),
         state: refreshState.lastRequestedState,
       });
@@ -344,6 +387,10 @@ const _useGoogleAuth = () => {
   const login = useCallback(() => {
     if (googleSignInRef.current) {
       const refreshState = silentRefreshRef.current;
+      // GIS does not expose a way to cancel a token popup. Starting another request
+      // would make the shared callback ambiguous, so let the current request settle.
+      if (refreshState.pending) return;
+
       refreshState.lastAttemptWasGesture = true;
       refreshState.consecutiveFailures = 0;
       refreshState.firstFailureAt = 0;
@@ -352,19 +399,21 @@ const _useGoogleAuth = () => {
       refreshState.lastAttemptAt = Date.now();
       refreshState.lastRequestedState = generateOAuthState();
 
-      // A gesture-triggered login supersedes any in-flight silent refresh — settle it
-      // now so its watchdog can't later fire against a flow that's no longer relevant.
-      if (refreshState.pending) {
-        if (refreshState.pending.watchdogId) clearTimeout(refreshState.pending.watchdogId);
-        refreshState.pending.reject(new Error('GoogleAuth: superseded by an explicit login'));
-        refreshState.pending = null;
-      }
-
       googleSignInRef.current.requestAccessToken({ prompt: 'select_account', state: refreshState.lastRequestedState });
     }
   }, []);
 
   const logout = useCallback(() => {
+    const refreshState = silentRefreshRef.current;
+    if (refreshState.pending?.watchdogId) clearTimeout(refreshState.pending.watchdogId);
+    refreshState.pending?.reject(new Error('GoogleAuth: logged out during token refresh'));
+    refreshState.pending = null;
+    refreshState.inProgress = false;
+    refreshState.lastRequestedState = null;
+    refreshState.lastAttemptWasGesture = false;
+
+    window.gapi?.client?.setToken?.(null);
+    currentUserRef.current = getUserDefaultState();
     clearLocalStorage();
     setAllStates(defaultAllStates);
   }, [setAllStates, clearLocalStorage]);

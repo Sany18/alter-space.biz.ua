@@ -13,7 +13,7 @@ set -uo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-ALL_PROJECTS=(3d-shooter gta-vc screen-saver tetris welcome-page)
+ALL_PROJECTS=(3d-shooter gta-vc note-keeper screen-saver tetris welcome-page)
 PROJECTS=("${@:-${ALL_PROJECTS[@]}}")
 
 declare -a SUCCEEDED=()

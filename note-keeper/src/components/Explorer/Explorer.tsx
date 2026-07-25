@@ -688,6 +688,7 @@ export const Explorer: React.FC<Props> = () => {
 
       {!userHasDriveAccess() &&
         <button
+          data-google-auth-action
           title="To see your Google Drive files, you need to accept access to your Google Drive account"
           onClick={requestAdditionalScopes}>
           Request my Google Drive files

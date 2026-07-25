@@ -24,7 +24,7 @@ export const changeGDFileParent = ({ handleError, ensureFreshAccessToken }) => (
           const resp = await changeGDFileParent({ handleError, ensureFreshAccessToken })(fileInfo, newParentId);
           resolve(resp);
         } else if (error.status === 401 && !_retriedAfter401) {
-          const freshToken = await ensureFreshAccessToken();
+          const freshToken = await ensureFreshAccessToken({ forceRefresh: true });
           window.gapi.client.setToken({ access_token: freshToken });
           const resp = await changeGDFileParent({ handleError, ensureFreshAccessToken })(fileInfo, newParentId, true);
           resolve(resp);

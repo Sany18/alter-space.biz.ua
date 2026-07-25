@@ -37,6 +37,15 @@ import { getGDRevisionContent } from "./googleDriveCRUD/getRevisionContent";
 
 let gapiCallbacks = [];
 
+// Every Drive operation goes through this gate. Besides avoiding a guaranteed 401
+// when the locally stored token is stale, it lets a user gesture start/join the GIS
+// token flow before the Drive request is dispatched.
+const authorizeGapiFunction = (ensureFreshAccessToken, request) => async (...args) => {
+  const accessToken = await ensureFreshAccessToken();
+  window.gapi.client.setToken({ access_token: accessToken });
+  return request(...args);
+};
+
 export const _useGapi = () => {
   const [sessionState] = useRecoilState(sessionSelector);
   const [filesListState] = useRecoilState(explorerSelector);
@@ -112,14 +121,17 @@ export const _useGapi = () => {
 
   const getGDInfo = useCallback(async (_retriedAfter401 = false): Promise<any> => {
     try {
+      const accessToken = await ensureFreshAccessToken({
+        forceRefresh: _retriedAfter401,
+      });
+      window.gapi.client.setToken({ access_token: accessToken });
+
       return await window.gapi.client.drive.about.get({
         fields: 'storageQuota'
       });
     } catch (error: any) {
       if (error?.status === 401 && !_retriedAfter401) {
         try {
-          const freshToken = await ensureFreshAccessToken();
-          window.gapi.client.setToken({ access_token: freshToken });
           return await getGDInfo(true);
         } catch {
           handleError('getGDInfo', error);
@@ -131,42 +143,139 @@ export const _useGapi = () => {
     }
   }, [gapiInitialized, handleError, ensureFreshAccessToken]);
 
-  // Get quota info
+  // Get quota info only after a usable token exists. This avoids turning gapi
+  // initialization itself into an unauthenticated Drive request.
   useEffect(() => {
-    executeAfterGapiInit(() => {
-      getGDInfo().then(response => {
-        const storageQuota = new GDStorageQuota(response?.result.storageQuota);
+    const accessToken = currentUser.googleAccessTokenToGD?.access_token;
+    const tokenValid = accessToken && !isTokenExpired(currentUser.googleAccessTokenToGD);
+    if (!gapiInitialized || !currentUser.loggedIn || !tokenValid) return;
 
-        setAppState({ storageQuota });
-      });
+    getGDInfo().then(response => {
+      if (!response?.result?.storageQuota) return;
+
+      const storageQuota = new GDStorageQuota(response.result.storageQuota);
+      setAppState({ storageQuota });
     });
-  }, []);
+  }, [
+    gapiInitialized,
+    currentUser.loggedIn,
+    currentUser.googleAccessTokenToGD?.access_token,
+    getGDInfo,
+    setAppState,
+  ]);
 
-  const getGDList = useCallback(getList({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const getGDList = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      getList({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const getFile = useCallback(getGDFile({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const getFile = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      getGDFile({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const getFileInfo = useCallback(getGDFileInfo({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const getFileInfo = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      getGDFileInfo({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const updateGDFile = useCallback(updateFile({ setCurrentFile: setActiveFileInfo, handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const updateGDFile = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      updateFile({
+        setCurrentFile: setActiveFileInfo,
+        handleError,
+        ensureFreshAccessToken,
+      }),
+    ),
+    [handleError, ensureFreshAccessToken, setActiveFileInfo],
+  );
 
-  const changeFileParent = useCallback(changeGDFileParent({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const changeFileParent = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      changeGDFileParent({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const deleteGDFile = useCallback(deleteFile({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const deleteGDFile = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      deleteFile({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const deleteGDFileForever = useCallback(deleteFileForever({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const deleteGDFileForever = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      deleteFileForever({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const renameGDFile = useCallback(renameFile({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const renameGDFile = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      renameFile({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const copyGDFile = useCallback(copyFile({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const copyGDFile = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      copyFile({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const createFile = useCallback(createGDFile({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const createFile = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      createGDFile({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const getGDRevisionsList = useCallback(getGDRevisions({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const getGDRevisionsList = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      getGDRevisions({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const getGDFileRevisionContent = useCallback(getGDRevisionContent({ handleError, ensureFreshAccessToken }), [handleError, ensureFreshAccessToken]);
+  const getGDFileRevisionContent = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      getGDRevisionContent({ handleError, ensureFreshAccessToken }),
+    ),
+    [handleError, ensureFreshAccessToken],
+  );
 
-  const uploadFileToGD = useCallback(uploadFiles({ ensureFreshAccessToken }), [ensureFreshAccessToken]);
+  const uploadFileToGD = useCallback(
+    authorizeGapiFunction(
+      ensureFreshAccessToken,
+      uploadFiles({ ensureFreshAccessToken }),
+    ),
+    [ensureFreshAccessToken],
+  );
+
+  const openAuthorizedPickerForFile = useCallback(
+    authorizeGapiFunction(ensureFreshAccessToken, openPickerForFile),
+    [ensureFreshAccessToken],
+  );
 
   const fetchChildrenList = useCallback(async (fileFromList: File) => {
     try {
@@ -317,7 +426,7 @@ export const _useGapi = () => {
     uploadFileToGD,
     changeFileParent,
     fetchChildrenList,
-    openPickerForFile,
+    openPickerForFile: openAuthorizedPickerForFile,
     fetchRootFilesList,
     deleteGDFileForever,
     executeAfterGapiInit,

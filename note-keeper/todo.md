@@ -1,2 +1,2 @@
 - remove getFile. Use fileInfo.webViewLink instead of file
-- create getFileFromUrl
+- create getFileFromUrl. Allows to upload file to the google drive from url

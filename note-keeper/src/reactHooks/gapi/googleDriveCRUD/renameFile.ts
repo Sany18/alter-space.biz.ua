@@ -25,7 +25,7 @@ export const renameFile = ({ handleError, ensureFreshAccessToken }) => (fileInfo
           const resp = await renameFile({ handleError, ensureFreshAccessToken })(fileInfo, newName);
           resolve(resp);
         } else if (error.status === 401 && !_retriedAfter401) {
-          const freshToken = await ensureFreshAccessToken();
+          const freshToken = await ensureFreshAccessToken({ forceRefresh: true });
           window.gapi.client.setToken({ access_token: freshToken });
           const resp = await renameFile({ handleError, ensureFreshAccessToken })(fileInfo, newName, true);
           resolve(resp);

@@ -20,7 +20,7 @@ export const deleteFileForever = ({ handleError, ensureFreshAccessToken }) => (f
           const resp = await deleteFileForever({ handleError, ensureFreshAccessToken })(fileInfo);
           resolve(resp);
         } else if (error.status === 401 && !_retriedAfter401) {
-          const freshToken = await ensureFreshAccessToken();
+          const freshToken = await ensureFreshAccessToken({ forceRefresh: true });
           window.gapi.client.setToken({ access_token: freshToken });
           const resp = await deleteFileForever({ handleError, ensureFreshAccessToken })(fileInfo, true);
           resolve(resp);

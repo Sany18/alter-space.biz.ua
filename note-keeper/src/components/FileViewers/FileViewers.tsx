@@ -239,7 +239,7 @@ export const FileViewer: React.FC<Props> = () => {
       setMessage({
         type: MessageType.WARNING,
         title: 'Google Drive connection needs to be renewed.',
-        messageContent: <button className="button" onClick={login}>Reconnect</button>,
+        messageContent: <button data-google-auth-action className="button" onClick={login}>Reconnect</button>,
       });
       return;
     }

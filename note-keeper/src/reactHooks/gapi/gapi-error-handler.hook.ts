@@ -31,7 +31,7 @@ export const useGapiErrorHandler = () => {
     // Fire-and-forget safety net for call sites that don't implement their own
     // retry-after-refresh; the CRUD layer's own 401 handling covers the common paths.
     if (errorStatusCode === 401) {
-      ensureFreshAccessToken().catch(() => {
+      ensureFreshAccessToken({ forceRefresh: true }).catch(() => {
         log.appEvent('GoogleAuth: background refresh triggered by a 401 failed.');
       });
     }

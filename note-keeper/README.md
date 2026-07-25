@@ -12,13 +12,17 @@ Padding grid 0.25rem
 
 # Google APIs
 ### Login:
-Latest google auth way (2024) GIS (Google Identity Services)
-https://developers.google.com/identity/gsi/web/guides/overview
+Google Identity Services (GIS) OAuth 2.0 token model:
+https://developers.google.com/identity/oauth2/web/guides/use-token-model
 
-We use FedCM (Federated Credential Management) to authenticate users.
-This is a new way to authenticate users using Google Sign-In (Nov 2024)
-migration guide
-https://developers.google.com/identity/gsi/web/guides/fedcm-migration
+The Drive access token flow is popup-based and is not FedCM. FedCM applies to
+Sign in with Google identity/ID-token flows, not to scoped Google Drive API
+authorization.
+
+The browser token model does not issue a refresh token. Replacement access
+tokens must be requested from a user-driven event. A fully background refresh
+would require the authorization-code model and a backend that stores the
+refresh token.
 
 ### Google Drive API
 Google Drive API v3
@@ -55,14 +59,6 @@ https://search.google.com/search-console/welcome
 
 Change VITE_VERSION in .env file to update the version of the app
 and avoid cache issues
-
-
-  // Ensure the user is signed in
-  const authInstance = gapi.auth2.getAuthInstance();
-  if (!authInstance.isSignedIn.get()) {
-    await authInstance.signIn();
-  }
-
 
 ### Custom events added to document directly
 

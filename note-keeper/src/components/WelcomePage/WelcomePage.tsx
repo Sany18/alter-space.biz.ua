@@ -66,6 +66,7 @@ export const WelcomePage: React.FC = () => {
       <p>
         To start using the app, please sign in with your <span> </span>
         <button
+          data-google-auth-action
           style={{ margin: '0.5rem' }}
           onClick={login}>
           Google Account

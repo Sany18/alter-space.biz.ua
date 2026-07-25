@@ -21,7 +21,7 @@ export const getGDFileInfo = ({ handleError, ensureFreshAccessToken }) => (fileI
 
       if (error?.status === 401 && !_retriedAfter401) {
         try {
-          const freshToken = await ensureFreshAccessToken();
+          const freshToken = await ensureFreshAccessToken({ forceRefresh: true });
           window.gapi.client.setToken({ access_token: freshToken });
           const resp = await getGDFileInfo({ handleError, ensureFreshAccessToken })(fileInfo, true);
           resolve(resp);

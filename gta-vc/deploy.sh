@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Deploy the project to the remote server
 #
 # Unlike the other projects here, revcDOS ships pre-built - there's no local
@@ -5,6 +6,8 @@
 # converted GTA: Vice City game data. Both need to land under /gta-vc so
 # the engine's relative fetches ("vc-assets/...", "preload_files.list") resolve
 # correctly - see server.ts for the equivalent local-dev path mapping.
+
+set -euo pipefail
 
 set -o allexport
 source ../.env

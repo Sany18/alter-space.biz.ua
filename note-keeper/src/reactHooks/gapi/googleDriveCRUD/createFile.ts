@@ -17,7 +17,7 @@ export const createGDFile = ({ handleError, ensureFreshAccessToken }) => (name: 
     }).catch(async (error) => {
       if (error?.status === 401 && !_retriedAfter401) {
         try {
-          const freshToken = await ensureFreshAccessToken();
+          const freshToken = await ensureFreshAccessToken({ forceRefresh: true });
           window.gapi.client.setToken({ access_token: freshToken });
           const resp = await createGDFile({ handleError, ensureFreshAccessToken })(name, mimeType, parents, true);
           resolve(resp);

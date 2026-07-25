@@ -80,6 +80,7 @@ export const Header: React.FC<Props> = ({ simpleView, hideEditorName }) => {
 
           {loggedIn && currentUser.needsReauth &&
             <button
+              data-google-auth-action
               onClick={login}
               title="Google Drive connection needs to be renewed"
               className="Header__loginButton">
@@ -90,6 +91,7 @@ export const Header: React.FC<Props> = ({ simpleView, hideEditorName }) => {
           {loggedIn
             ? <Menu />
             : <button
+                data-google-auth-action
                 onClick={login}
                 className="Header__loginButton">
                 Sign in
