@@ -9,6 +9,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const basePath = process.env.VITE_BASE_PATH || env.VITE_BASE_PATH || '/';
+  const appVersion = process.env.VITE_VERSION || env.VITE_VERSION || 'dev';
 
   return {
     base: basePath,
@@ -16,7 +17,10 @@ export default defineConfig(({ mode }) => {
       react(),
       tsconfigPaths(),
       VitePWA({
-        injectRegister: 'auto',
+        // A versioned URL prevents Cloudflare or the browser from pinning a
+        // previous release's precache manifest after authentication redirects.
+        filename: `sw-${appVersion}.js`,
+        injectRegister: 'inline',
         registerType: 'autoUpdate',
         base: basePath,
         workbox: {

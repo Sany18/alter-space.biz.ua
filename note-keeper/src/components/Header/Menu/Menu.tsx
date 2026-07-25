@@ -7,9 +7,12 @@ import { Icon } from "components/Atoms/Icon/Icon";
 
 import "./Menu.css";
 
-type Props = {}
+type Props = {
+  trigger?: React.ReactNode;
+  title?: string;
+}
 
-export const Menu: React.FC<Props> = ({ }) => {
+export const Menu: React.FC<Props> = ({ trigger, title }) => {
   const { logout } = useGoogleAuth();
 
   const menuEl = useRef(null);
@@ -23,12 +26,14 @@ export const Menu: React.FC<Props> = ({ }) => {
   return <>
     <div
       ref={menuEl}
-      title={menuOpen ? '' : 'Open menu'}
+      title={menuOpen ? '' : title || 'Open menu'}
       onClick={toggleMenu}
       className="Header__icon-button Menu__toggle">
-      <Icon size="1.5rem">
-        menu
-      </Icon>
+      {trigger || (
+        <Icon size="1.5rem">
+          menu
+        </Icon>
+      )}
 
       {menuOpen &&
         <div className="HeaderMenu contextMenu">

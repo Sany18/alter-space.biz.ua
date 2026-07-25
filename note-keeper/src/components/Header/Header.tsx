@@ -89,28 +89,27 @@ export const Header: React.FC<Props> = ({ simpleView, hideEditorName }) => {
           }
 
           {loggedIn
-            ? <Menu />
+            ? <Menu
+                title={currentUser.userInfo?.email}
+                trigger={currentUser.userInfo?.picture
+                  ? <div className="Header__userIcon">
+                      <Img
+                        crossOrigin="anonymous"
+                        onError={(e) => {
+                          const getFirstLetterrs = (str: string) => str.split(' ').map(word => word[0]).join('');
+                          e.currentTarget.src = `https://placehold.co/28x28/000000/FFFFFF/png?text=${getFirstLetterrs(currentUser.userInfo.name)}`;
+                        }}
+                        src={currentUser.userInfo.pictureBase64 || currentUser.userInfo.picture}
+                        alt={currentUser.userInfo.email} />
+                    </div>
+                  : undefined}
+              />
             : <button
                 data-google-auth-action
                 onClick={login}
                 className="Header__loginButton">
                 Sign in
               </button>
-          }
-
-          {loggedIn && currentUser.userInfo?.picture &&
-            <div
-              title={currentUser.userInfo.email}
-              className="Header__userIcon">
-              <Img
-                crossOrigin="anonymous"
-                onError={(e) => {
-                  const getFirstLetterrs = (str: string) => str.split(' ').map(word => word[0]).join('');
-                  e.currentTarget.src = `https://placehold.co/28x28/000000/FFFFFF/png?text=${getFirstLetterrs(currentUser.userInfo.name)}`;
-                }}
-                src={currentUser.userInfo.pictureBase64 || currentUser.userInfo.picture}
-                alt={currentUser.userInfo.email} />
-            </div>
           }
         </div>
       }

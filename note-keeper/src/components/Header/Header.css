@@ -65,6 +65,7 @@
 .Header__rightPart {
   gap: 0.25rem;
   display: flex;
+  padding-right: 0.5rem;
   align-items: center;
 
   .Header__googleSignIn > div:first-child {

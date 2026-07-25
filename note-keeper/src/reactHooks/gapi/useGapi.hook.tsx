@@ -54,7 +54,7 @@ export const _useGapi = () => {
   const [gapiInitialized, setGapiInitialized] = useState(false);
 
   const { handleError } = useGapiErrorHandler();
-  const { currentUser, ensureFreshAccessToken } = useGoogleAuth();
+  const { currentUser, ensureFreshAccessToken, isAuthInitializing } = useGoogleAuth();
   const { fileTree, explorerState, setTree, setExplorerInProgress, setExplorerState } = useExplorer();
 
   const fileTreeRef = useRef(fileTree);
@@ -337,7 +337,7 @@ export const _useGapi = () => {
       freshListOfRootEntities.forEach(e => e.root = true);
       const wrappedRootFolder = [createGDWrapperFolder(freshListOfRootEntities)];
 
-      const allUniqueEntities = getQniqueFilesAndUpdateOld(fileTree, wrappedRootFolder);
+      const allUniqueEntities = getQniqueFilesAndUpdateOld(fileTreeRef.current, wrappedRootFolder);
 
       setTree(allUniqueEntities);
     } catch (error) {
@@ -346,7 +346,7 @@ export const _useGapi = () => {
     } finally {
       setExplorerInProgress(false);
     }
-  }, [getGDList, createGDWrapperFolder, fileTree, setTree, setExplorerState, setExplorerInProgress]);
+  }, [getGDList, createGDWrapperFolder, setTree, setExplorerState, setExplorerInProgress]);
 
   /////////////////////////////////////////////
   // Upload batch of files to Google Drive
@@ -397,17 +397,34 @@ export const _useGapi = () => {
     }
   }, [filesListState.fileTree, fileUploading, uploadFileToGD]);
 
-    //////////////////////////////////////////
+  //////////////////////////////////////////
   // Get root files list when token is valid
   //////////////////////////////////////////
+  const rootFilesFetchedForToken = useRef<string | null>(null);
+
   useEffect(() => {
     const accessToken = currentUser.googleAccessTokenToGD?.access_token;
     const tokenValid = accessToken && !isTokenExpired(currentUser.googleAccessTokenToGD);
 
-    if (sessionState.isAppLoaded && gapiInitialized && currentUser.loggedIn && tokenValid) {
+    if (
+      !isAuthInitializing &&
+      sessionState.isAppLoaded &&
+      gapiInitialized &&
+      currentUser.loggedIn &&
+      tokenValid &&
+      rootFilesFetchedForToken.current !== accessToken
+    ) {
+      rootFilesFetchedForToken.current = accessToken;
       fetchRootFilesList();
     }
-  }, [sessionState.isAppLoaded, gapiInitialized, currentUser.loggedIn, currentUser.googleAccessTokenToGD?.access_token]);
+  }, [
+    isAuthInitializing,
+    sessionState.isAppLoaded,
+    gapiInitialized,
+    currentUser.loggedIn,
+    currentUser.googleAccessTokenToGD,
+    fetchRootFilesList,
+  ]);
 
   return {
     rootId,

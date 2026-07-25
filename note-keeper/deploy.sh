@@ -10,7 +10,6 @@ set -euo pipefail
 
 set -o allexport
 source ../.env      # REMOTE_HOST, DOMAIN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID
-source .env.prod    # Note Keeper VITE_* browser configuration; see .env.example
 set +o allexport
 
 echo "Deploying to $REMOTE_HOST"
@@ -20,9 +19,16 @@ if [[ ! -x node_modules/.bin/vite ]]; then
 fi
 
 node bump-version.cjs
+
+# Load the version written by bump-version.cjs together with the remaining
+# Note Keeper browser configuration.
+set -o allexport
+source .env.prod    # Note Keeper VITE_* browser configuration; see .env.example
+set +o allexport
+
 VITE_BASE_PATH=/note-keeper/ pnpm run build
 
-rsync -av \
+rsync -av --delete \
   --exclude-from=.gitignore \
   build/ \
   root@${REMOTE_HOST}:/var/www/${DOMAIN}/note-keeper
