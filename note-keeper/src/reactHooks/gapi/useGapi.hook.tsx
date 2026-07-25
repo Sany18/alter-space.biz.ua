@@ -68,14 +68,15 @@ export const _useGapi = () => {
     log.appEvent('Initializing gapi...');
 
     const initGapi = () => {
-      window.gapi.load('client', async () => {
+      // Load both modules through one callback. Calling gapi.load('picker')
+      // without a callback makes the current Google API loader try to invoke
+      // an undefined callback after its internal loaded_* script completes.
+      window.gapi.load('client:picker', async () => {
         try {
           await window.gapi.client.init({
             apiKey: import.meta.env.VITE_GOOGLE_WEB_API_KEY,
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
           });
-
-          window.gapi.load('picker');
 
           log.appEvent('Gapi initialized');
           setGapiInitialized(true);

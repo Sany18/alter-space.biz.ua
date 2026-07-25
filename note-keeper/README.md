@@ -39,8 +39,8 @@ Firebase console setup:
 
 - Enable Google under Authentication > Sign-in method.
 - Add `alter-space.biz.ua` under Authentication > Settings > Authorized domains.
-- Keep `https://custom-sun-439217-g6.firebaseapp.com/__/auth/handler` as an
-  authorized OAuth redirect URI.
+- Keep `https://${VITE_GOOGLE_AUTH_DOMAIN}/__/auth/handler` as an authorized
+  OAuth redirect URI.
 - Set `VITE_FIREBASE_API_KEY` to the Firebase web app API key. That key must
   permit Identity Toolkit API calls from `https://alter-space.biz.ua/*`.
 - `VITE_GOOGLE_WEB_API_KEY` remains the separately restricted Drive/Picker key.
